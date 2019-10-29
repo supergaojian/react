@@ -135,7 +135,7 @@ export type UpdateQueue<State> = {
   lastCapturedEffect: Update<State> | null,
 };
 
-export const UpdateState = 0;
+export const UpdateState = 0; // 更新状态
 export const ReplaceState = 1;
 export const ForceUpdate = 2;
 export const CaptureUpdate = 3;
@@ -156,6 +156,10 @@ if (__DEV__) {
   };
 }
 
+/**
+ * 创建update队列
+ * @param {*} baseState fiberNode的memoizedState对象
+ */
 export function createUpdateQueue<State>(baseState: State): UpdateQueue<State> {
   const queue: UpdateQueue<State> = {
     baseState,
@@ -171,9 +175,14 @@ export function createUpdateQueue<State>(baseState: State): UpdateQueue<State> {
   return queue;
 }
 
+/**
+ * 创建一个update队列副本
+ * @param {*} currentQueue 
+ */
 function cloneUpdateQueue<State>(
   currentQueue: UpdateQueue<State>,
 ): UpdateQueue<State> {
+  // 创建这个副本只是指向改变了，但是内部的update对象还是指向同一个
   const queue: UpdateQueue<State> = {
     baseState: currentQueue.baseState,
     firstUpdate: currentQueue.firstUpdate,
@@ -193,12 +202,17 @@ function cloneUpdateQueue<State>(
   return queue;
 }
 
+/**
+ * 创建update对象
+ * @param {*} expirationTime 过期时间
+ * @param {*} suspenseConfig 
+ */
 export function createUpdate(
   expirationTime: ExpirationTime,
   suspenseConfig: null | SuspenseConfig,
 ): Update<*> {
   return {
-    expirationTime,
+    expirationTime, // 过期时间
     suspenseConfig,
 
     tag: UpdateState,
@@ -210,6 +224,12 @@ export function createUpdate(
   };
 }
 
+/**
+ * 将update放到update队列中
+ * 
+ * @param {*} queue update队列
+ * @param {*} update 要加入的update
+ */
 function appendUpdateToQueue<State>(
   queue: UpdateQueue<State>,
   update: Update<State>,
@@ -217,23 +237,37 @@ function appendUpdateToQueue<State>(
   // Append the update to the end of the list.
   if (queue.lastUpdate === null) {
     // Queue is empty
+    // update队列的last update（最后一个update）为空，则认为是一个空的队列
+    // 将队列中第一个update和最后一个update都指向update
     queue.firstUpdate = queue.lastUpdate = update;
   } else {
+    // 将队列中最后一个update的next指向update
+    // 将最后一个update指向了加入的update
+    // Tip：update队列是一个链表
     queue.lastUpdate.next = update;
     queue.lastUpdate = update;
   }
 }
 
+/**
+ * 将新创建的update放到队列中
+ * 
+ * @param {*} fiber fiberNode
+ * @param {*} update update对象
+ */
 export function enqueueUpdate<State>(fiber: Fiber, update: Update<State>) {
   // Update queues are created lazily.
   const alternate = fiber.alternate;
   let queue1;
   let queue2;
+  
   if (alternate === null) {
     // There's only one fiber.
-    queue1 = fiber.updateQueue;
+    // 只有一个fiber node
+    queue1 = fiber.updateQueue; // 取当前fiber node的update队列
     queue2 = null;
-    if (queue1 === null) {
+    if (queue1 === null) { // 当前fiber node也没有update队列
+      // 初始化一个新的update队列
       queue1 = fiber.updateQueue = createUpdateQueue(fiber.memoizedState);
     }
   } else {
@@ -262,6 +296,7 @@ export function enqueueUpdate<State>(fiber: Fiber, update: Update<State>) {
   }
   if (queue2 === null || queue1 === queue2) {
     // There's only a single queue.
+    // 只有一个update队列，将新的update放到queue1（fiber.updateQueue）中
     appendUpdateToQueue(queue1, update);
   } else {
     // There are two queues. We need to append the update to both queues,
@@ -330,21 +365,37 @@ export function enqueueCapturedUpdate<State>(
   }
 }
 
+/**
+ * 保证当前fiber和workInProgress的update队列不是指向同一个
+ * @param {*} workInProgress 
+ * @param {*} queue 
+ */
 function ensureWorkInProgressQueueIsAClone<State>(
   workInProgress: Fiber,
   queue: UpdateQueue<State>,
 ): UpdateQueue<State> {
-  const current = workInProgress.alternate;
+  const current = workInProgress.alternate; // 当前的fiber node
   if (current !== null) {
     // If the work-in-progress queue is equal to the current queue,
     // we need to clone it first.
+    // 如果两个都是指向同一个update队列
     if (queue === current.updateQueue) {
+      // 创建一个queue的副本赋值给workInProgress
       queue = workInProgress.updateQueue = cloneUpdateQueue(queue);
     }
   }
   return queue;
 }
 
+/**
+ * 
+ * @param {*} workInProgress 下一个时期的fiber node
+ * @param {*} queue update队列
+ * @param {*} update 当前update对象
+ * @param {*} prevState 前一时期的state
+ * @param {*} nextProps 下一个时期的props
+ * @param {*} instance 
+ */
 function getStateFromUpdate<State>(
   workInProgress: Fiber,
   queue: UpdateQueue<State>,
@@ -385,6 +436,7 @@ function getStateFromUpdate<State>(
     case UpdateState: {
       const payload = update.payload;
       let partialState;
+      
       if (typeof payload === 'function') {
         // Updater function
         if (__DEV__) {
@@ -420,6 +472,14 @@ function getStateFromUpdate<State>(
   return prevState;
 }
 
+/**
+ * 执行update队列
+ * @param {*} workInProgress 下一个时期的fiber node
+ * @param {*} queue update队列
+ * @param {*} props 下一个时期的props
+ * @param {*} instance 
+ * @param {*} renderExpirationTime 渲染过期时间
+ */
 export function processUpdateQueue<State>(
   workInProgress: Fiber,
   queue: UpdateQueue<State>,
@@ -429,6 +489,7 @@ export function processUpdateQueue<State>(
 ): void {
   hasForceUpdate = false;
 
+  // 创建一个update队列的副本
   queue = ensureWorkInProgressQueueIsAClone(workInProgress, queue);
 
   if (__DEV__) {
@@ -443,6 +504,7 @@ export function processUpdateQueue<State>(
   // Iterate through the list of updates to compute the result.
   let update = queue.firstUpdate;
   let resultState = newBaseState;
+  // 开始遍历update队列
   while (update !== null) {
     const updateExpirationTime = update.expirationTime;
     if (updateExpirationTime < renderExpirationTime) {
@@ -480,6 +542,7 @@ export function processUpdateQueue<State>(
         props,
         instance,
       );
+      
       const callback = update.callback;
       if (callback !== null) {
         workInProgress.effectTag |= Callback;
@@ -543,10 +606,12 @@ export function processUpdateQueue<State>(
         }
       }
     }
+    // 开始遍历下一个update
     update = update.next;
   }
 
   if (newFirstUpdate === null) {
+    // 清空update队列最后一个update
     queue.lastUpdate = null;
   }
   if (newFirstCapturedUpdate === null) {
@@ -560,6 +625,7 @@ export function processUpdateQueue<State>(
     newBaseState = resultState;
   }
 
+  // 清空update队列
   queue.baseState = newBaseState;
   queue.firstUpdate = newFirstUpdate;
   queue.firstCapturedUpdate = newFirstCapturedUpdate;
@@ -571,6 +637,7 @@ export function processUpdateQueue<State>(
   // dealt with the props. Context in components that specify
   // shouldComponentUpdate is tricky; but we'll have to account for
   // that regardless.
+  // 清空workInProgress的过期时间
   workInProgress.expirationTime = newExpirationTime;
   workInProgress.memoizedState = resultState;
 

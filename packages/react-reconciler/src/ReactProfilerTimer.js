@@ -39,13 +39,18 @@ function recordCommitTime(): void {
   commitTime = now();
 }
 
+/**
+ * 开启Profiler timer
+ * @param {*} fiber 
+ */
 function startProfilerTimer(fiber: Fiber): void {
   if (!enableProfilerTimer) {
     return;
   }
 
+  // 设置全局开始时间为当前时间戳
   profilerStartTime = now();
-
+  
   if (((fiber.actualStartTime: any): number) < 0) {
     fiber.actualStartTime = now();
   }

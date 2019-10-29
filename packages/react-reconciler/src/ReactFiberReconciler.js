@@ -103,6 +103,10 @@ if (__DEV__) {
   didWarnAboutFindNodeInStrictMode = {};
 }
 
+/**
+ * 
+ * @param {*} parentComponent 
+ */
 function getContextForSubtree(
   parentComponent: ?React$Component<any, any>,
 ): Object {
@@ -122,7 +126,14 @@ function getContextForSubtree(
 
   return parentContext;
 }
-
+/**
+ * 调度根结点更新
+ * @param {*} current 根结点FiberNode
+ * @param {*} element 子节点
+ * @param {*} expirationTime 过期时间
+ * @param {*} suspenseConfig 
+ * @param {*} callback 回调
+ */
 function scheduleRootUpdate(
   current: Fiber,
   element: ReactNodeList,
@@ -148,12 +159,18 @@ function scheduleRootUpdate(
     }
   }
 
+  // 创建Update对象
   const update = createUpdate(expirationTime, suspenseConfig);
+
   // Caution: React DevTools currently depends on this property
   // being called "element".
+  
+  // 将子节点放到update对象payload的element字段
   update.payload = {element};
 
+  // callback 类型校验
   callback = callback === undefined ? null : callback;
+  // 存在更新后的回调
   if (callback !== null) {
     warningWithoutStack(
       typeof callback === 'function',
@@ -161,18 +178,30 @@ function scheduleRootUpdate(
         'function. Instead received: %s.',
       callback,
     );
+    // 将更新后的回调放到update对象的callback字段
     update.callback = callback;
   }
 
   if (revertPassiveEffectsChange) {
     flushPassiveEffects();
   }
+  // 将新创建的update放到队列中
   enqueueUpdate(current, update);
+  // 开始调度工作
   scheduleWork(current, expirationTime);
 
   return expirationTime;
 }
 
+/**
+ * 在过期时间更新容器
+ * @param {*} element 子节点
+ * @param {*} container 父级FiberNode
+ * @param {*} parentComponent 父级组件
+ * @param {*} expirationTime 过期时间
+ * @param {*} suspenseConfig 
+ * @param {*} callback 回调
+ */
 export function updateContainerAtExpirationTime(
   element: ReactNodeList,
   container: OpaqueRoot,
@@ -182,7 +211,7 @@ export function updateContainerAtExpirationTime(
   callback: ?Function,
 ) {
   // TODO: If this is a nested container, this won't be the root.
-  const current = container.current;
+  const current = container.current; // 父级FiberRootNode对应的FiberNode
 
   if (__DEV__) {
     if (ReactFiberInstrumentation.debugTool) {
@@ -204,11 +233,11 @@ export function updateContainerAtExpirationTime(
   }
 
   return scheduleRootUpdate(
-    current,
-    element,
-    expirationTime,
+    current, // 根结点的FiberNode
+    element, // 子节点
+    expirationTime, // 过期时间
     suspenseConfig,
-    callback,
+    callback, // 回调
   );
 }
 
@@ -293,6 +322,12 @@ function findHostInstanceWithWarning(
   return findHostInstance(component);
 }
 
+/**
+ * 创建FiberRoot容器
+ * @param {*} containerInfo Dom容器
+ * @param {*} tag Dom标签
+ * @param {*} hydrate 
+ */
 export function createContainer(
   containerInfo: Container,
   tag: RootTag,
@@ -301,33 +336,42 @@ export function createContainer(
   return createFiberRoot(containerInfo, tag, hydrate);
 }
 
+/**
+ * 更新容器
+ * @param {*} element 子节点
+ * @param {*} container 父级FiberRootNode
+ * @param {*} parentComponent 父级组件
+ * @param {*} callback 回调
+ */
 export function updateContainer(
   element: ReactNodeList,
   container: OpaqueRoot,
   parentComponent: ?React$Component<any, any>,
   callback: ?Function,
 ): ExpirationTime {
-  const current = container.current;
-  const currentTime = requestCurrentTime();
+  const current = container.current; // 父级的FiberNode
+  const currentTime = requestCurrentTime(); // 获取当前时间
   if (__DEV__) {
     // $FlowExpectedError - jest isn't a global, and isn't recognized outside of tests
     if ('undefined' !== typeof jest) {
       warnIfNotScopedWithMatchingAct(current);
     }
   }
+  // 获取当前suspense配置
   const suspenseConfig = requestCurrentSuspenseConfig();
+  // 计算FiberNode的过期时间
   const expirationTime = computeExpirationForFiber(
     currentTime,
     current,
     suspenseConfig,
   );
   return updateContainerAtExpirationTime(
-    element,
-    container,
-    parentComponent,
-    expirationTime,
+    element, // 子节点
+    container, // 父级FiberRootNode
+    parentComponent, // 父级组件
+    expirationTime, // 过期时间
     suspenseConfig,
-    callback,
+    callback, // 回调
   );
 }
 

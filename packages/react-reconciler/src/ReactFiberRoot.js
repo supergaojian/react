@@ -93,10 +93,16 @@ export type FiberRoot = {
   ...ProfilingOnlyFiberRootProperties,
 };
 
+/**
+ * FiberRootNode原型
+ * @param {*} containerInfo dom容器
+ * @param {*} tag 容器标签
+ * @param {*} hydrate 
+ */
 function FiberRootNode(containerInfo, tag, hydrate) {
-  this.tag = tag;
+  this.tag = tag; // 容器标签
   this.current = null;
-  this.containerInfo = containerInfo;
+  this.containerInfo = containerInfo; // dom容器
   this.pendingChildren = null;
   this.pingCache = null;
   this.finishedExpirationTime = NoWork;
@@ -119,18 +125,26 @@ function FiberRootNode(containerInfo, tag, hydrate) {
   }
 }
 
+/**
+ * 创建FiberNode根结点
+ * @param {*} containerInfo dom容器
+ * @param {*} tag 容器标签
+ * @param {*} hydrate 
+ */
 export function createFiberRoot(
   containerInfo: any,
   tag: RootTag,
   hydrate: boolean,
 ): FiberRoot {
+  // 实例化一个FiberRootNode
   const root: FiberRoot = (new FiberRootNode(containerInfo, tag, hydrate): any);
 
   // Cyclic construction. This cheats the type system right now because
   // stateNode is any.
+  // 创建一个与FiberRoot对应的FiberNode
   const uninitializedFiber = createHostRootFiber(tag);
-  root.current = uninitializedFiber;
-  uninitializedFiber.stateNode = root;
+  root.current = uninitializedFiber; // 挂载到FiberNode
+  uninitializedFiber.stateNode = root; // FiberNode的stateNode指向FiberRoot
 
   return root;
 }

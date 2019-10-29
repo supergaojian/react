@@ -178,13 +178,13 @@ const {
 
 type ExecutionContext = number;
 
-const NoContext = /*                    */ 0b000000;
-const BatchedContext = /*               */ 0b000001;
-const EventContext = /*                 */ 0b000010;
-const DiscreteEventContext = /*         */ 0b000100;
-const LegacyUnbatchedContext = /*       */ 0b001000;
-const RenderContext = /*                */ 0b010000;
-const CommitContext = /*                */ 0b100000;
+const NoContext = /*                    */ 0b000000; // 0
+const BatchedContext = /*               */ 0b000001; // 1
+const EventContext = /*                 */ 0b000010; // 2
+const DiscreteEventContext = /*         */ 0b000100; // 4
+const LegacyUnbatchedContext = /*       */ 0b001000; // 8
+const RenderContext = /*                */ 0b010000; // 16
+const CommitContext = /*                */ 0b100000; // 32
 
 type RootExitStatus = 0 | 1 | 2 | 3 | 4;
 const RootIncomplete = 0;
@@ -204,13 +204,14 @@ let workInProgressRoot: FiberRoot | null = null;
 // The fiber we're working on
 let workInProgress: Fiber | null = null;
 // The expiration time we're rendering
-let renderExpirationTime: ExpirationTime = NoWork;
+// 渲染时间点
+let renderExpirationTime: ExpirationTime = NoWork; // 0
 // Whether to root completed, errored, suspended, etc.
 let workInProgressRootExitStatus: RootExitStatus = RootIncomplete;
 // Most recent event time among processed updates during this render.
 // This is conceptually a time stamp but expressed in terms of an ExpirationTime
 // because we deal mostly with expiration times in the hot path, so this avoids
-// the conversion happening in the hot path.
+// the conversion happening in thstartWorkOnPendingInteractionse hot path.
 let workInProgressRootLatestProcessedExpirationTime: ExpirationTime = Sync;
 let workInProgressRootLatestSuspenseTimeout: ExpirationTime = Sync;
 let workInProgressRootCanSuspendUsingConfig: null | SuspenseConfig = null;
@@ -263,6 +264,9 @@ let spawnedWorkDuringRender: null | Array<ExpirationTime> = null;
 // receive the same expiration time. Otherwise we get tearing.
 let currentEventTime: ExpirationTime = NoWork;
 
+/**
+ * 获取当前时间
+ */
 export function requestCurrentTime() {
   if ((executionContext & (RenderContext | CommitContext)) !== NoContext) {
     // We're inside React, so it's fine to read the actual time.
@@ -278,23 +282,35 @@ export function requestCurrentTime() {
   return currentEventTime;
 }
 
+/**
+ * 计算FiberNode的过期时间
+ * @param {*} currentTime // 当前时间
+ * @param {*} fiber // FiberNode
+ * @param {*} suspenseConfig
+ */
 export function computeExpirationForFiber(
   currentTime: ExpirationTime,
   fiber: Fiber,
   suspenseConfig: null | SuspenseConfig,
 ): ExpirationTime {
-  const mode = fiber.mode;
-  if ((mode & BatchedMode) === NoMode) {
-    return Sync;
+  const mode = fiber.mode; // Fiber mode类型
+  if ((mode & BatchedMode) === NoMode) { // 不等于BatchedMode
+    return Sync; // 返回最大过期时间
   }
 
+  // 获取当前优先级
   const priorityLevel = getCurrentPriorityLevel();
-  if ((mode & ConcurrentMode) === NoMode) {
+  if ((mode & ConcurrentMode) === NoMode) { // 不等于ConcurrentMode
+    // 当前优先级是立即执行？
+    // true：最大过期时间
+    // false：最大过期时间 - 1
     return priorityLevel === ImmediatePriority ? Sync : Batched;
   }
 
   if ((executionContext & RenderContext) !== NoContext) {
     // Use whatever time we're already rendering
+    // executionContext === RenderContext
+    // 返回渲染过期时间 0（立即渲染）
     return renderExpirationTime;
   }
 
@@ -355,6 +371,12 @@ export function computeUniqueAsyncExpiration(): ExpirationTime {
   return result;
 }
 
+/**
+ * 调度Fiber的update
+ * 
+ * @param {*} fiber 调度fiber node 
+ * @param {*} expirationTime 过期时间
+ */
 export function scheduleUpdateOnFiber(
   fiber: Fiber,
   expirationTime: ExpirationTime,
@@ -362,8 +384,10 @@ export function scheduleUpdateOnFiber(
   checkForNestedUpdates();
   warnAboutInvalidUpdatesOnClassComponentsInDEV(fiber);
 
+  // 更新fiber node所在整个链路的所有fiber node的过期时间
+  // 并返回fiber root node
   const root = markUpdateTimeFromFiberToRoot(fiber, expirationTime);
-  if (root === null) {
+  if (root === null) { // 不存在FiberRootNode抛出异常
     warnAboutUpdateOnUnmountedFiberInDEV(fiber);
     return;
   }
@@ -375,9 +399,14 @@ export function scheduleUpdateOnFiber(
 
   // TODO: computeExpirationForFiber also reads the priority. Pass the
   // priority as an argument to that function and this one.
-  const priorityLevel = getCurrentPriorityLevel();
+  const priorityLevel = getCurrentPriorityLevel(); // 获取当前优先级
 
   if (expirationTime === Sync) {
+    // 过期时间 等于 最大系统时间
+
+    // 满足条件有两个条件
+    // 1、当前执行任务 不是 LegacyUnbatchedContext
+    // 2、当前执行任务 不是 渲染任务，也不是 提交任务
     if (
       // Check if we're inside unbatchedUpdates
       (executionContext & LegacyUnbatchedContext) !== NoContext &&
@@ -434,8 +463,16 @@ export const scheduleWork = scheduleUpdateOnFiber;
 // work without treating it as a typical update that originates from an event;
 // e.g. retrying a Suspense boundary isn't an update, but it does schedule work
 // on a fiber.
+
+/**
+ * 更新fiber所在整个链路的过期时间并返回FiberRootNode
+ * @param {*} fiber fiber node
+ * @param {*} expirationTime 过期时间
+ */
 function markUpdateTimeFromFiberToRoot(fiber, expirationTime) {
   // Update the source fiber's expiration time
+  // 如果fiber自身的过期时间小于当前传入的过期时间
+  // 则更新fiebr的过期时间为当前过期时间
   if (fiber.expirationTime < expirationTime) {
     fiber.expirationTime = expirationTime;
   }
@@ -446,8 +483,9 @@ function markUpdateTimeFromFiberToRoot(fiber, expirationTime) {
   // Walk the parent path to the root and update the child expiration time.
   let node = fiber.return;
   let root = null;
+  
   if (node === null && fiber.tag === HostRoot) {
-    root = fiber.stateNode;
+    root = fiber.stateNode; // 返回fiber root node
   } else {
     while (node !== null) {
       alternate = node.alternate;
@@ -758,19 +796,27 @@ export function flushControlled(fn: () => mixed): void {
   }
 }
 
+/**
+ * 准备刷新堆栈，并创建新的workInProgress
+ * @param {*} root FiberRootNode
+ * @param {*} expirationTime 过期时间
+ */
 function prepareFreshStack(root, expirationTime) {
-  root.finishedWork = null;
-  root.finishedExpirationTime = NoWork;
+  root.finishedWork = null; // 将root的已完成任务晴空
+  root.finishedExpirationTime = NoWork; // 将root的完成时间点更新为0
 
   const timeoutHandle = root.timeoutHandle;
+  
+  // 当前存在延迟回调
   if (timeoutHandle !== noTimeout) {
     // The root previous suspended and scheduled a timeout to commit a fallback
     // state. Now that we have additional work, cancel the timeout.
-    root.timeoutHandle = noTimeout;
+    root.timeoutHandle = noTimeout; // 将FiberRootNode的timeoutHandle置为-1（没有回调）
     // $FlowFixMe Complains noTimeout is not a TimeoutID, despite the check above
-    cancelTimeout(timeoutHandle);
+    cancelTimeout(timeoutHandle); // 清除延迟回调
   }
 
+  // 当前存在正在执行的Root
   if (workInProgress !== null) {
     let interruptedWork = workInProgress.return;
     while (interruptedWork !== null) {
@@ -778,8 +824,11 @@ function prepareFreshStack(root, expirationTime) {
       interruptedWork = interruptedWork.return;
     }
   }
+  // 将当前执行的Root对象置为root
   workInProgressRoot = root;
+  // 创建新的workInProgress对象
   workInProgress = createWorkInProgress(root.current, null, expirationTime);
+  // 渲染过期时间为当前过期时间
   renderExpirationTime = expirationTime;
   workInProgressRootExitStatus = RootIncomplete;
   workInProgressRootLatestProcessedExpirationTime = Sync;
@@ -797,6 +846,12 @@ function prepareFreshStack(root, expirationTime) {
   }
 }
 
+/**
+ * 渲染根结点
+ * @param {*} root fiberRootNode
+ * @param {*} expirationTime 过期时间
+ * @param {*} isSync 是否系统最大时间
+ */
 function renderRoot(
   root: FiberRoot,
   expirationTime: ExpirationTime,
@@ -806,19 +861,26 @@ function renderRoot(
     (executionContext & (RenderContext | CommitContext)) === NoContext,
     'Should not already be working.',
   );
-
+  
+  // 满足条件：
+  // 1、开发环境时（enableUserTimingAPI为true）
+  // 2、过期时间 不等于 系统最大时间
   if (enableUserTimingAPI && expirationTime !== Sync) {
     const didExpire = isSync;
     stopRequestCallbackTimer(didExpire);
   }
 
+  // 当FiberRootNode的最后一次pend时间小于过期时间，则终止
   if (root.firstPendingTime < expirationTime) {
     // If there's no work left at this expiration time, exit immediately. This
     // happens when multiple callbacks are scheduled for a single root, but an
     // earlier callback flushes the work of a later one.
+
+    // 走到这里证明有一个root有多个回调调度，但是最早的一个回调已经更新好了
     return null;
   }
 
+  // fiberRootNode完成过期时间 等于 当前过期时间
   if (isSync && root.finishedExpirationTime === expirationTime) {
     // There's already a pending commit at this expiration time.
     // TODO: This is poorly factored. This case only exists for the
@@ -827,10 +889,15 @@ function renderRoot(
   }
 
   flushPassiveEffects();
-
+  
   // If the root or expiration time have changed, throw out the existing stack
   // and prepare a fresh one. Otherwise we'll continue where we left off.
+ 
+  // 满足条件两者之一
+  // 1、root 不是 workInProgressRoot（当前正在执行的Root节点）
+  // 2、当前过期时间 不等于 渲染过期时间
   if (root !== workInProgressRoot || expirationTime !== renderExpirationTime) {
+    // 准备更新FiberRootNode的堆栈
     prepareFreshStack(root, expirationTime);
     startWorkOnPendingInteractions(root, expirationTime);
   } else if (workInProgressRootExitStatus === RootSuspendedWithDelay) {
@@ -860,6 +927,7 @@ function renderRoot(
   if (workInProgress !== null) {
     const prevExecutionContext = executionContext;
     executionContext |= RenderContext;
+    // 将当前hook的dispatcher置为pre
     let prevDispatcher = ReactCurrentDispatcher.current;
     if (prevDispatcher === null) {
       // The React isomorphic package does not include a default dispatcher.
@@ -867,6 +935,7 @@ function renderRoot(
       // nicer error messages.
       prevDispatcher = ContextOnlyDispatcher;
     }
+    // 更新当前hook的dispatcher为新的dispatcher
     ReactCurrentDispatcher.current = ContextOnlyDispatcher;
     let prevInteractions: Set<Interaction> | null = null;
     if (enableSchedulerTracing) {
@@ -874,6 +943,7 @@ function renderRoot(
       __interactionsRef.current = root.memoizedInteractions;
     }
 
+    // 开启工作队列timer（开发使用）
     startWorkLoopTimer(workInProgress);
 
     // TODO: Fork renderRoot into renderRootSync and renderRootAsync
@@ -1221,6 +1291,9 @@ function inferTimeFromExpirationTimeWithSuspenseConfig(
   );
 }
 
+/**
+ * 同步执行任务队列
+ */
 function workLoopSync() {
   // Already timed out, so perform work without checking if we need to yield.
   while (workInProgress !== null) {
@@ -1235,16 +1308,22 @@ function workLoop() {
   }
 }
 
+/**
+ * 执行任务单元
+ * @param {*} unitOfWork 任务单元（FiberNode）
+ */
 function performUnitOfWork(unitOfWork: Fiber): Fiber | null {
   // The current, flushed, state of this fiber is the alternate. Ideally
   // nothing should rely on this, but relying on it here means that we don't
   // need an additional field on the work in progress.
-  const current = unitOfWork.alternate;
+  const current = unitOfWork.alternate; // 当前执行的fiberNode
 
-  startWorkTimer(unitOfWork);
-  setCurrentDebugFiberInDEV(unitOfWork);
+  startWorkTimer(unitOfWork); // 开启任务队列timer（开发使用）
+  setCurrentDebugFiberInDEV(unitOfWork); // 设置当前debugger fiber（开发使用）
 
   let next;
+  // 满足条件
+  // 1、fiber的mode和ProfileMode一致
   if (enableProfilerTimer && (unitOfWork.mode & ProfileMode) !== NoMode) {
     startProfilerTimer(unitOfWork);
     next = beginWork(current, unitOfWork, renderExpirationTime);
@@ -1897,6 +1976,7 @@ export function flushPassiveEffects() {
   if (rootWithPendingPassiveEffects === null) {
     return false;
   }
+  
   const root = rootWithPendingPassiveEffects;
   const expirationTime = pendingPassiveEffectsExpirationTime;
   rootWithPendingPassiveEffects = null;
@@ -2602,6 +2682,11 @@ function schedulePendingInteractions(root, expirationTime) {
   scheduleInteractions(root, expirationTime, __interactionsRef.current);
 }
 
+/**
+ * 
+ * @param {*} root FiberRootNode
+ * @param {*} expirationTime 过期时间
+ */
 function startWorkOnPendingInteractions(root, expirationTime) {
   // This is called when new work is started on a root.
   if (!enableSchedulerTracing) {

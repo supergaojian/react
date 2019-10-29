@@ -514,11 +514,13 @@ async function createBundle(bundle, bundleType) {
       bundleType === FB_WWW_PROD ||
       bundleType === FB_WWW_PROFILING,
   };
+  
   const [mainOutputPath, ...otherOutputPaths] = Packaging.getBundleOutputPaths(
     bundleType,
     filename,
     packageName
   );
+  
   const rollupOutputOptions = getRollupOutputOptions(
     mainOutputPath,
     format,
@@ -526,7 +528,6 @@ async function createBundle(bundle, bundleType) {
     bundle.global,
     bundleType
   );
-
   if (isWatchMode) {
     rollupConfig.output = [rollupOutputOptions];
     const watcher = rollup.watch(rollupConfig);
@@ -644,23 +645,22 @@ async function buildEverything() {
   for (const bundle of Bundles.bundles) {
     bundles.push(
       [bundle, UMD_DEV],
-      [bundle, UMD_PROD],
-      [bundle, UMD_PROFILING],
-      [bundle, NODE_DEV],
-      [bundle, NODE_PROD],
-      [bundle, NODE_PROFILING],
-      [bundle, FB_WWW_DEV],
-      [bundle, FB_WWW_PROD],
-      [bundle, FB_WWW_PROFILING],
-      [bundle, RN_OSS_DEV],
-      [bundle, RN_OSS_PROD],
-      [bundle, RN_OSS_PROFILING],
-      [bundle, RN_FB_DEV],
-      [bundle, RN_FB_PROD],
-      [bundle, RN_FB_PROFILING]
+      // [bundle, UMD_PROD],
+      // [bundle, UMD_PROFILING],
+      // [bundle, NODE_DEV],
+      // [bundle, NODE_PROD],
+      // [bundle, NODE_PROFILING],
+      // [bundle, FB_WWW_DEV],
+      // [bundle, FB_WWW_PROD],
+      // [bundle, FB_WWW_PROFILING],
+      // [bundle, RN_OSS_DEV],
+      // [bundle, RN_OSS_PROD],
+      // [bundle, RN_OSS_PROFILING],
+      // [bundle, RN_FB_DEV],
+      // [bundle, RN_FB_PROD],
+      // [bundle, RN_FB_PROFILING]
     );
   }
-
   if (!shouldExtractErrors && process.env.CIRCLE_NODE_TOTAL) {
     // In CI, parallelize bundles across multiple tasks.
     const nodeTotal = parseInt(process.env.CIRCLE_NODE_TOTAL, 10);

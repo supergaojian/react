@@ -71,7 +71,7 @@ export const requestPaint =
 let syncQueue: Array<SchedulerCallback> | null = null;
 let immediateQueueCallbackNode: mixed | null = null;
 let isFlushingSyncQueue: boolean = false;
-let initialTimeMs: number = Scheduler_now();
+let initialTimeMs: number = Scheduler_now(); // 初始时间戳（当前时间戳）
 
 // If the initial timestamp is reasonably small, use Scheduler's `now` directly.
 // This will be the case for modern browsers that support `performance.now`. In
@@ -80,21 +80,29 @@ let initialTimeMs: number = Scheduler_now();
 // the behavior of performance.now and keep our times small enough to fit
 // within 32 bits.
 // TODO: Consider lifting this into Scheduler.
+
+// 返回当前时间戳函数
+// 1、如果初始时间戳小于10000，当前时间为：当前时间戳 - 初始时间戳
+// 2、如果初始时间戳大于等于10000，当前时间为：当前时间戳
 export const now =
   initialTimeMs < 10000 ? Scheduler_now : () => Scheduler_now() - initialTimeMs;
 
+  /**
+   * 获取当前优先级
+   */
 export function getCurrentPriorityLevel(): ReactPriorityLevel {
+  // 根据当前调度器优先级转义到React调度器优先级
   switch (Scheduler_getCurrentPriorityLevel()) {
     case Scheduler_ImmediatePriority:
-      return ImmediatePriority;
+      return ImmediatePriority; // 立即执行
     case Scheduler_UserBlockingPriority:
-      return UserBlockingPriority;
+      return UserBlockingPriority; // 用户行为
     case Scheduler_NormalPriority:
-      return NormalPriority;
+      return NormalPriority; // 常规优先级
     case Scheduler_LowPriority:
-      return LowPriority;
+      return LowPriority; // 第优先级
     case Scheduler_IdlePriority:
-      return IdlePriority;
+      return IdlePriority; // 空闲优先级
     default:
       invariant(false, 'Unknown priority level.');
   }

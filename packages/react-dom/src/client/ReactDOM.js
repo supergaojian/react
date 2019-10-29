@@ -364,6 +364,12 @@ ReactWork.prototype._onCommit = function(): void {
   }
 };
 
+/**
+ * react根结点原型
+ * @param {*} container dom容器
+ * @param {*} tag 容器标签
+ * @param {*} hydrate 
+ */
 function ReactSyncRoot(
   container: DOMContainer,
   tag: RootTag,
@@ -371,7 +377,7 @@ function ReactSyncRoot(
 ) {
   // Tag is either LegacyRoot or Concurrent Root
   const root = createContainer(container, tag, hydrate);
-  this._internalRoot = root;
+  this._internalRoot = root; // 将FiberRoot节点挂载到_internalRoot下
 }
 
 function ReactRoot(container: DOMContainer, hydrate: boolean) {
@@ -460,20 +466,31 @@ function isValidContainer(node) {
   );
 }
 
+/**
+ * 获取容器中react根节点
+ * 
+ * @param {*} container dom容器
+ */
 function getReactRootElementInContainer(container: any) {
   if (!container) {
     return null;
   }
 
   if (container.nodeType === DOCUMENT_NODE) {
+    // container是document
     return container.documentElement;
   } else {
+    // 其他情况返回第一个子节点
     return container.firstChild;
   }
 }
 
 function shouldHydrateDueToLegacyHeuristic(container) {
   const rootElement = getReactRootElementInContainer(container);
+  // 满足全部条件返回true
+  // 1、节点存在
+  // 2、节点是一个元素节点 nodeType = 1
+  // 3、节点包含了data-reactroot属性
   return !!(
     rootElement &&
     rootElement.nodeType === ELEMENT_NODE &&
@@ -490,16 +507,24 @@ setBatchingImplementation(
 
 let warnedAboutHydrateAPI = false;
 
+/**
+ * 通过Dom生成RootElement
+ * @param {*} container 创建的Dom
+ * @param {*} forceHydrate 
+ */
 function legacyCreateRootFromDOMContainer(
   container: DOMContainer,
   forceHydrate: boolean,
 ): _ReactSyncRoot {
   const shouldHydrate =
     forceHydrate || shouldHydrateDueToLegacyHeuristic(container);
+
   // First clear any existing content.
   if (!shouldHydrate) {
     let warned = false;
     let rootSibling;
+
+    // 将container中所有内容移除清空
     while ((rootSibling = container.lastChild)) {
       if (__DEV__) {
         if (
@@ -532,9 +557,18 @@ function legacyCreateRootFromDOMContainer(
   }
 
   // Legacy roots are not batched.
+  // 生成React根节点
   return new ReactSyncRoot(container, LegacyRoot, shouldHydrate);
 }
 
+/**
+ * 渲染子树到父级
+ * @param {*} parentComponent 父级组件
+ * @param {*} children 渲染的子组件
+ * @param {*} container 父级DOM
+ * @param {*} forceHydrate 
+ * @param {*} callback 挂载成功之后的回调
+ */
 function legacyRenderSubtreeIntoContainer(
   parentComponent: ?React$Component<any, any>,
   children: ReactNodeList,
@@ -549,16 +583,20 @@ function legacyRenderSubtreeIntoContainer(
 
   // TODO: Without `any` type, Flow says "Property cannot be accessed on any
   // member of intersection type." Whyyyyyy.
+  // 从父级dom中取_reactRootContainer（react根结点ReactElement）
   let root: _ReactSyncRoot = (container._reactRootContainer: any);
   let fiberRoot;
   if (!root) {
+    // 首次渲染
     // Initial mount
+    // 创建一个FiberRoot（以及对应的FiberNode）
+    // 将FiberSyncRoot挂载到dom容器的_reactRootContainer下
     root = container._reactRootContainer = legacyCreateRootFromDOMContainer(
-      container,
+      container, // dom容器
       forceHydrate,
     );
-    fiberRoot = root._internalRoot;
-    if (typeof callback === 'function') {
+    fiberRoot = root._internalRoot; // FiberRootNode
+    if (typeof callback === 'function') { // 回调是函数式
       const originalCallback = callback;
       callback = function() {
         const instance = getPublicRootInstance(fiberRoot);
@@ -656,6 +694,12 @@ const ReactDOM: Object = {
     );
   },
 
+  /**
+   * 将ReactElement渲染
+   * @param {*} element 要渲染的reactElement
+   * @param {*} container 挂载的父级
+   * @param {*} callback 挂载成功之后的回调
+   */
   render(
     element: React$Element<any>,
     container: DOMContainer,

@@ -15,6 +15,9 @@ import type {Fiber} from 'react-reconciler/src/ReactFiber';
  * The current owner is the component who should own any components that are
  * currently being constructed.
  */
+/**
+ * 全局React父级
+ */
 const ReactCurrentOwner = {
   /**
    * @internal

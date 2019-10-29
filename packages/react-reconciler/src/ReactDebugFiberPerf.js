@@ -355,6 +355,10 @@ export function stopPhaseTimer(): void {
   }
 }
 
+/**
+ * 开始工作队列Timer
+ * @param {*} nextUnitOfWork 下一个执行单元
+ */
 export function startWorkLoopTimer(nextUnitOfWork: Fiber | null): void {
   if (enableUserTimingAPI) {
     currentFiber = nextUnitOfWork;
@@ -370,6 +374,11 @@ export function startWorkLoopTimer(nextUnitOfWork: Fiber | null): void {
   }
 }
 
+/**
+ * 停止工作队列Timer
+ * @param {*} interruptedBy 
+ * @param {*} didCompleteRoot 
+ */
 export function stopWorkLoopTimer(
   interruptedBy: Fiber | null,
   didCompleteRoot: boolean,

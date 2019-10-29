@@ -245,6 +245,13 @@ if (__DEV__) {
   debugCounter = 1;
 }
 
+/**
+ * FiberNode原型
+ * @param {*} tag 
+ * @param {*} pendingProps 
+ * @param {*} key 
+ * @param {*} mode 
+ */
 function FiberNode(
   tag: WorkTag,
   pendingProps: mixed,
@@ -252,8 +259,8 @@ function FiberNode(
   mode: TypeOfMode,
 ) {
   // Instance
-  this.tag = tag;
-  this.key = key;
+  this.tag = tag; // 容器标签
+  this.key = key; // react-key
   this.elementType = null;
   this.type = null;
   this.stateNode = null;
@@ -266,7 +273,7 @@ function FiberNode(
 
   this.ref = null;
 
-  this.pendingProps = pendingProps;
+  this.pendingProps = pendingProps; // 接收的props
   this.memoizedProps = null;
   this.updateQueue = null;
   this.memoizedState = null;
@@ -339,6 +346,13 @@ function FiberNode(
 //    is faster.
 // 5) It should be easy to port this to a C struct and keep a C implementation
 //    compatible.
+/**
+ * 创建fiberNode
+ * @param {*} tag  容器标签
+ * @param {*} pendingProps 接收的props
+ * @param {*} key react-key
+ * @param {*} mode 
+ */
 const createFiber = function(
   tag: WorkTag,
   pendingProps: mixed,
@@ -346,6 +360,7 @@ const createFiber = function(
   mode: TypeOfMode,
 ): Fiber {
   // $FlowFixMe: the shapes are exact here but Flow doesn't like constructors
+  // 返回一个FiberNode实例
   return new FiberNode(tag, pendingProps, key, mode);
 };
 
@@ -378,18 +393,30 @@ export function resolveLazyComponentTag(Component: Function): WorkTag {
 }
 
 // This is used to create an alternate fiber to do work on.
+/**
+ * 创建workInProgress对象（当前执行中对象）
+ * 就是创建一个新的FiberNode为current的拷贝
+ * 
+ * @param {*} current FiberNode
+ * @param {*} pendingProps 
+ * @param {*} expirationTime 过期时间
+ */
 export function createWorkInProgress(
   current: Fiber,
   pendingProps: any,
   expirationTime: ExpirationTime,
 ): Fiber {
+  
   let workInProgress = current.alternate;
   if (workInProgress === null) {
+    // 
     // We use a double buffering pooling technique because we know that we'll
     // only ever need at most two versions of a tree. We pool the "other" unused
     // node that we're free to reuse. This is lazily created to avoid allocating
     // extra objects for things that are never updated. It also allow us to
     // reclaim the extra memory if needed.
+    
+    // 创建一个current拷贝的FiberNode
     workInProgress = createFiber(
       current.tag,
       pendingProps,
@@ -408,6 +435,7 @@ export function createWorkInProgress(
       workInProgress._debugHookTypes = current._debugHookTypes;
     }
 
+    // 将两个对象的alternate分别指向对方
     workInProgress.alternate = current;
     current.alternate = workInProgress;
   } else {
@@ -484,6 +512,10 @@ export function createWorkInProgress(
   return workInProgress;
 }
 
+/**
+ * 创建FiberRootNode对应的FiberNode
+ * @param {*} tag 容器标签
+ */
 export function createHostRootFiber(tag: RootTag): Fiber {
   let mode;
   if (tag === ConcurrentRoot) {
@@ -501,6 +533,8 @@ export function createHostRootFiber(tag: RootTag): Fiber {
     mode |= ProfileMode;
   }
 
+  // 创建一个FiberNode
+  // HostRoot表示这个FiberNode是一个根节点
   return createFiber(HostRoot, null, null, mode);
 }
 

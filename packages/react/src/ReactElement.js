@@ -22,27 +22,43 @@ const RESERVED_PROPS = {
 
 let specialPropKeyWarningShown, specialPropRefWarningShown;
 
+/**
+ * 校验是否为有效的ref
+ * @param {*} config 
+ */
 function hasValidRef(config) {
   if (__DEV__) {
+    // 开发环境中会判断ref是否为config的字段
     if (hasOwnProperty.call(config, 'ref')) {
+      // 获取ref的get方法判断是否存在，且不存在isReactWarning字段
       const getter = Object.getOwnPropertyDescriptor(config, 'ref').get;
       if (getter && getter.isReactWarning) {
         return false;
       }
     }
   }
+
+  // 生产环境汇总直接返回是否存在ref
   return config.ref !== undefined;
 }
 
+/**
+ * 校验是否为有效key
+ * @param {*} config 
+ */
 function hasValidKey(config) {
   if (__DEV__) {
+    // 开发环境中会判断ref是否为config的字段
     if (hasOwnProperty.call(config, 'key')) {
+      // 获取ref的get方法判断是否存在，且不存在isReactWarning字段
       const getter = Object.getOwnPropertyDescriptor(config, 'key').get;
       if (getter && getter.isReactWarning) {
         return false;
       }
     }
   }
+
+  // 生产环境汇总直接返回是否存在key
   return config.key !== undefined;
 }
 
@@ -108,10 +124,21 @@ function defineRefPropWarningGetter(props, displayName) {
  * indicating filename, line number, and/or other information.
  * @internal
  */
+/**
+ * 创建一个ReactElement
+ * @param {*} type 标签
+ * @param {*} key key
+ * @param {*} ref ref
+ * @param {*} self self
+ * @param {*} source source
+ * @param {*} owner 父级
+ * @param {*} props props
+ */
 const ReactElement = function(type, key, ref, self, source, owner, props) {
+  // 声明一个新对象
   const element = {
     // This tag allows us to uniquely identify this as a React Element
-    $$typeof: REACT_ELEMENT_TYPE,
+    $$typeof: REACT_ELEMENT_TYPE, // 用来标记当前对象是reactElement
 
     // Built-in properties that belong on the element
     type: type,
@@ -301,6 +328,12 @@ export function jsxDEV(type, config, maybeKey, source, self) {
  * Create and return a new ReactElement of the given type.
  * See https://reactjs.org/docs/react-api.html#createelement
  */
+/**
+ * 创建一个reactElement
+ * @param {*} type 标签
+ * @param {*} config 所有的配置（props、className、events等）
+ * @param {*} children 子元素数组
+ */
 export function createElement(type, config, children) {
   let propName;
 
@@ -313,17 +346,23 @@ export function createElement(type, config, children) {
   let source = null;
 
   if (config != null) {
+    // 确定传入的ref是否为有效的
     if (hasValidRef(config)) {
       ref = config.ref;
     }
+    // 确定传入的key是否为有效的
     if (hasValidKey(config)) {
-      key = '' + config.key;
+      key = '' + config.key; // 强制转成字符串
     }
 
+    // 初始化__self为null
     self = config.__self === undefined ? null : config.__self;
+    // 初始化__source为null
     source = config.__source === undefined ? null : config.__source;
     // Remaining properties are added to a new props object
     for (propName in config) {
+      // 对config遍历
+      // 将key、ref、__self、__source以外的字段赋值到新的props对象中
       if (
         hasOwnProperty.call(config, propName) &&
         !RESERVED_PROPS.hasOwnProperty(propName)
@@ -335,27 +374,34 @@ export function createElement(type, config, children) {
 
   // Children can be more than one argument, and those are transferred onto
   // the newly allocated props object.
+  // 这里会认为传的children不止一个，所以将第三个开始后面的实参全部定义为children
   const childrenLength = arguments.length - 2;
   if (childrenLength === 1) {
-    props.children = children;
+    props.children = children; // 只有一个children（可嫩为数组）
   } else if (childrenLength > 1) {
-    const childArray = Array(childrenLength);
+    // 有多个children
+    const childArray = Array(childrenLength); // 初始化一个相同长度的数组
     for (let i = 0; i < childrenLength; i++) {
+      // 对实参遍历放到数组中
       childArray[i] = arguments[i + 2];
     }
     if (__DEV__) {
+      // 开发环境下会对children加freeze防止出现对数组改动
       if (Object.freeze) {
         Object.freeze(childArray);
       }
     }
+    // 赋值到props.children中
     props.children = childArray;
   }
 
   // Resolve default props
   if (type && type.defaultProps) {
+    // 如果存在defaultProps（默认值）
     const defaultProps = type.defaultProps;
-    for (propName in defaultProps) {
-      if (props[propName] === undefined) {
+    for (propName in defaultProps) { // defaultProps遍历
+      if (props[propName] === undefined) { 
+        // 只对props字段为undefined设置默认值
         props[propName] = defaultProps[propName];
       }
     }
@@ -380,7 +426,7 @@ export function createElement(type, config, children) {
     ref,
     self,
     source,
-    ReactCurrentOwner.current,
+    ReactCurrentOwner.current, // element父级
     props,
   );
 }

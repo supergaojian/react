@@ -24,13 +24,14 @@ export let requestPaint;
 export let getCurrentTime;
 export let forceFrameRate;
 
+// 判断当前是否支持performance
 const hasNativePerformanceNow =
   typeof performance === 'object' && typeof performance.now === 'function';
 
 // We capture a local reference to any global, in case it gets polyfilled after
 // this module is initially evaluated. We want to be using a
 // consistent implementation.
-const localDate = Date;
+const localDate = Date; //全局Date对象
 
 // This initialization code may run even on server environments if a component
 // just imports ReactDOM (e.g. for findDOMNode). Some environments might not
@@ -73,11 +74,14 @@ const requestAnimationFrameWithTimeout = function(callback) {
 };
 
 if (hasNativePerformanceNow) {
+  // 当前环境支持performance
+  // getCurrentTime为当前Performance.now()返回当前时间戳
   const Performance = performance;
   getCurrentTime = function() {
     return Performance.now();
   };
 } else {
+  // 不支持performance使用Date.now()返回当前时间戳
   getCurrentTime = function() {
     return localDate.now();
   };

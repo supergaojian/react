@@ -203,12 +203,20 @@ if (__DEV__) {
   didWarnAboutRevealOrder = {};
 }
 
+/**
+ * 
+ * @param {*} current 当前fiber node
+ * @param {*} workInProgress 下一个时期的fiber node
+ * @param {*} nextChildren 下一个时期的children
+ * @param {*} renderExpirationTime 渲染过期时间
+ */
 export function reconcileChildren(
   current: Fiber | null,
   workInProgress: Fiber,
   nextChildren: any,
   renderExpirationTime: ExpirationTime,
 ) {
+  debugger
   if (current === null) {
     // If this is a fresh new component that hasn't been rendered yet, we
     // won't update its child set by applying minimal side-effects. Instead,
@@ -884,6 +892,7 @@ function finishClassComponent(
 }
 
 function pushHostRootContext(workInProgress) {
+  // 取出fiber node对应的fiber root node
   const root = (workInProgress.stateNode: FiberRoot);
   if (root.pendingContext) {
     pushTopLevelContextObject(
@@ -898,6 +907,12 @@ function pushHostRootContext(workInProgress) {
   pushHostContainer(workInProgress, root.containerInfo);
 }
 
+/**
+ * 
+ * @param {*} current 当前fiber node
+ * @param {*} workInProgress 下一个时期fiber node
+ * @param {*} renderExpirationTime 渲染过期时间
+ */
 function updateHostRoot(current, workInProgress, renderExpirationTime) {
   pushHostRootContext(workInProgress);
   const updateQueue = workInProgress.updateQueue;
@@ -907,9 +922,10 @@ function updateHostRoot(current, workInProgress, renderExpirationTime) {
       'bailed out. This error is likely caused by a bug in React. Please ' +
       'file an issue.',
   );
-  const nextProps = workInProgress.pendingProps;
-  const prevState = workInProgress.memoizedState;
+  const nextProps = workInProgress.pendingProps; // 下一个时期的props
+  const prevState = workInProgress.memoizedState; //当前的state
   const prevChildren = prevState !== null ? prevState.element : null;
+  // 执行update队列
   processUpdateQueue(
     workInProgress,
     updateQueue,
@@ -917,10 +933,12 @@ function updateHostRoot(current, workInProgress, renderExpirationTime) {
     null,
     renderExpirationTime,
   );
+  // 此时workInProgress的memoizedState已经在processUpdateQueue中更新了
   const nextState = workInProgress.memoizedState;
   // Caution: React DevTools currently depends on this property
   // being called "element".
   const nextChildren = nextState.element;
+  
   if (nextChildren === prevChildren) {
     // If the state is the same as before, that's a bailout because we had
     // no work that expires at this time.
@@ -931,6 +949,7 @@ function updateHostRoot(current, workInProgress, renderExpirationTime) {
       renderExpirationTime,
     );
   }
+  // 取出fiber root node
   const root: FiberRoot = workInProgress.stateNode;
   if (
     (current === null || current.child === null) &&
@@ -2542,6 +2561,12 @@ function remountFiber(
   }
 }
 
+/**
+ * 
+ * @param {*} current 当前fiber node
+ * @param {*} workInProgress 下一个时期fiber node
+ * @param {*} renderExpirationTime 渲染过期时间
+ */
 function beginWork(
   current: Fiber | null,
   workInProgress: Fiber,
@@ -2579,6 +2604,8 @@ function beginWork(
     ) {
       // If props or context changed, mark the fiber as having performed work.
       // This may be unset if the props are determined to be equal later (memo).
+      
+      // props有更新
       didReceiveUpdate = true;
     } else if (updateExpirationTime < renderExpirationTime) {
       didReceiveUpdate = false;
@@ -2729,8 +2756,9 @@ function beginWork(
   }
 
   // Before entering the begin phase, clear the expiration time.
+  // 清空workInProgress（新Fiber root node）的过期时间
   workInProgress.expirationTime = NoWork;
-
+  
   switch (workInProgress.tag) {
     case IndeterminateComponent: {
       return mountIndeterminateComponent(
@@ -2779,8 +2807,9 @@ function beginWork(
         resolvedProps,
         renderExpirationTime,
       );
-    }
+    } 
     case HostRoot:
+      // 根节点
       return updateHostRoot(current, workInProgress, renderExpirationTime);
     case HostComponent:
       return updateHostComponent(current, workInProgress, renderExpirationTime);

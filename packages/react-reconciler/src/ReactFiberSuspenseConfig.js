@@ -17,6 +17,9 @@ export type SuspenseConfig = {|
   busyMinDurationMs?: number,
 |};
 
+/**
+ * 返回当前Suspense配置
+ */
 export function requestCurrentSuspenseConfig(): null | SuspenseConfig {
   return ReactCurrentBatchConfig.suspense;
 }
