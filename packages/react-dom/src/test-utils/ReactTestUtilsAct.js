@@ -7,17 +7,14 @@
  * @flow
  */
 
-import type {Thenable} from 'react-reconciler/src/ReactFiberWorkLoop';
+import type {Thenable} from 'shared/ReactTypes';
 
-import warningWithoutStack from 'shared/warningWithoutStack';
-import ReactDOM from 'react-dom';
+import * as ReactDOM from 'react-dom';
 import ReactSharedInternals from 'shared/ReactSharedInternals';
-import {warnAboutMissingMockScheduler} from 'shared/ReactFeatureFlags';
 import enqueueTask from 'shared/enqueueTask';
 import * as Scheduler from 'scheduler';
 
-// Keep in sync with ReactDOMUnstableNativeDependencies.js
-// ReactDOM.js, and ReactTestUtils.js:
+// Keep in sync with ReactDOM.js, and ReactTestUtils.js:
 const [
   /* eslint-disable no-unused-vars */
   getInstanceFromNode,
@@ -25,43 +22,32 @@ const [
   getFiberCurrentPropsFromNode,
   injectEventPluginsByName,
   eventNameDispatchConfigs,
-  accumulateTwoPhaseDispatches,
-  accumulateDirectDispatches,
   enqueueStateRestore,
   restoreStateIfNeeded,
   dispatchEvent,
-  runEventsInBatch,
   /* eslint-enable no-unused-vars */
   flushPassiveEffects,
-  ReactActingRendererSigil,
+  IsThisRendererActing,
 ] = ReactDOM.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.Events;
 
 const batchedUpdates = ReactDOM.unstable_batchedUpdates;
 
-const {ReactCurrentActingRendererSigil} = ReactSharedInternals;
+const {IsSomeRendererActing} = ReactSharedInternals;
 
 // this implementation should be exactly the same in
 // ReactTestUtilsAct.js, ReactTestRendererAct.js, createReactNoop.js
 
-let hasWarnedAboutMissingMockScheduler = false;
+const isSchedulerMocked =
+  typeof Scheduler.unstable_flushAllWithoutAsserting === 'function';
 const flushWork =
-  Scheduler.unstable_flushWithoutYielding ||
+  Scheduler.unstable_flushAllWithoutAsserting ||
   function() {
-    if (warnAboutMissingMockScheduler === true) {
-      if (hasWarnedAboutMissingMockScheduler === false) {
-        warningWithoutStack(
-          null,
-          'Starting from React v17, the "scheduler" module will need to be mocked ' +
-            'to guarantee consistent behaviour across tests and browsers. To fix this, add the following ' +
-            "to the top of your tests, or in your framework's global config file -\n\n" +
-            'As an example, for jest - \n' +
-            "jest.mock('scheduler', () => require.requireActual('scheduler/unstable_mock'));\n\n" +
-            'For more info, visit https://fb.me/react-mock-scheduler',
-        );
-        hasWarnedAboutMissingMockScheduler = true;
-      }
+    let didFlushWork = false;
+    while (flushPassiveEffects()) {
+      didFlushWork = true;
     }
-    while (flushPassiveEffects()) {}
+
+    return didFlushWork;
   };
 
 function flushWorkAndMicroTasks(onDone: (err: ?Error) => void) {
@@ -83,24 +69,34 @@ function flushWorkAndMicroTasks(onDone: (err: ?Error) => void) {
 // so we can tell if any async act() calls try to run in parallel.
 
 let actingUpdatesScopeDepth = 0;
+let didWarnAboutUsingActInProd = false;
 
-function act(callback: () => Thenable) {
-  let previousActingUpdatesScopeDepth = actingUpdatesScopeDepth;
-  let previousActingUpdatesSigil;
-  actingUpdatesScopeDepth++;
-  if (__DEV__) {
-    previousActingUpdatesSigil = ReactCurrentActingRendererSigil.current;
-    ReactCurrentActingRendererSigil.current = ReactActingRendererSigil;
+function act(callback: () => Thenable<mixed>): Thenable<void> {
+  if (!__DEV__) {
+    if (didWarnAboutUsingActInProd === false) {
+      didWarnAboutUsingActInProd = true;
+      // eslint-disable-next-line react-internal/no-production-logging
+      console.error(
+        'act(...) is not supported in production builds of React, and might not behave as expected.',
+      );
+    }
   }
+  const previousActingUpdatesScopeDepth = actingUpdatesScopeDepth;
+  actingUpdatesScopeDepth++;
+
+  const previousIsSomeRendererActing = IsSomeRendererActing.current;
+  const previousIsThisRendererActing = IsThisRendererActing.current;
+  IsSomeRendererActing.current = true;
+  IsThisRendererActing.current = true;
 
   function onDone() {
     actingUpdatesScopeDepth--;
+    IsSomeRendererActing.current = previousIsSomeRendererActing;
+    IsThisRendererActing.current = previousIsThisRendererActing;
     if (__DEV__) {
-      ReactCurrentActingRendererSigil.current = previousActingUpdatesSigil;
       if (actingUpdatesScopeDepth > previousActingUpdatesScopeDepth) {
         // if it's _less than_ previousActingUpdatesScopeDepth, then we can assume the 'other' one has warned
-        warningWithoutStack(
-          null,
+        console.error(
           'You seem to have overlapping act() calls, this is not supported. ' +
             'Be sure to await previous act() calls before making a new one. ',
         );
@@ -132,8 +128,7 @@ function act(callback: () => Thenable) {
           .then(() => {})
           .then(() => {
             if (called === false) {
-              warningWithoutStack(
-                null,
+              console.error(
                 'You called act(async () => ...) without await. ' +
                   'This could lead to unexpected testing behaviour, interleaving multiple act ' +
                   'calls and mixing their scopes. You should - await act(async () => ...);',
@@ -147,11 +142,15 @@ function act(callback: () => Thenable) {
     // effects and  microtasks in a loop until flushPassiveEffects() === false,
     // and cleans up
     return {
-      then(resolve: () => void, reject: (?Error) => void) {
+      then(resolve, reject) {
         called = true;
         result.then(
           () => {
-            if (actingUpdatesScopeDepth > 1) {
+            if (
+              actingUpdatesScopeDepth > 1 ||
+              (isSchedulerMocked === true &&
+                previousIsSomeRendererActing === true)
+            ) {
               onDone();
               resolve();
               return;
@@ -176,17 +175,21 @@ function act(callback: () => Thenable) {
     };
   } else {
     if (__DEV__) {
-      warningWithoutStack(
-        result === undefined,
-        'The callback passed to act(...) function ' +
-          'must return undefined, or a Promise. You returned %s',
-        result,
-      );
+      if (result !== undefined) {
+        console.error(
+          'The callback passed to act(...) function ' +
+            'must return undefined, or a Promise. You returned %s',
+          result,
+        );
+      }
     }
 
     // flush effects until none remain, and cleanup
     try {
-      if (actingUpdatesScopeDepth === 1) {
+      if (
+        actingUpdatesScopeDepth === 1 &&
+        (isSchedulerMocked === false || previousIsSomeRendererActing === false)
+      ) {
         // we're about to exit the act() scope,
         // now's the time to flush effects
         flushWork();
@@ -199,10 +202,9 @@ function act(callback: () => Thenable) {
 
     // in the sync case, the returned thenable only warns *if* await-ed
     return {
-      then(resolve: () => void) {
+      then(resolve) {
         if (__DEV__) {
-          warningWithoutStack(
-            false,
+          console.error(
             'Do not await the result of calling act(...) with sync logic, it is not a Promise.',
           );
         }

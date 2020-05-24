@@ -9,10 +9,11 @@
 
 export type TypeOfMode = number;
 
-export const NoMode = 0b0000; // 0
-export const StrictMode = 0b0001; // 1
-// TODO: Remove BatchedMode and ConcurrentMode by reading from the root
+export const NoMode = 0b00000;
+export const StrictMode = 0b00001;
+// TODO: Remove BlockingMode and ConcurrentMode by reading from the root
 // tag instead
-export const BatchedMode = 0b0010; // 2
-export const ConcurrentMode = 0b0100; // 4
-export const ProfileMode = 0b1000; // 8
+export const BlockingMode = 0b00010;
+export const ConcurrentMode = 0b00100;
+export const ProfileMode = 0b01000;
+export const DebugTracingMode = 0b10000;

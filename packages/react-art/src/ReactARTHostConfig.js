@@ -10,7 +10,10 @@ import Mode from 'art/modes/current';
 import invariant from 'shared/invariant';
 
 import {TYPES, EVENT_TYPES, childrenAsString} from './ReactARTInternals';
-import type {ReactEventComponentInstance} from 'shared/ReactTypes';
+import type {
+  ReactEventResponder,
+  ReactEventResponderInstance,
+} from 'shared/ReactTypes';
 
 const pooledTransform = new Transform();
 
@@ -65,7 +68,7 @@ function createEventHandler(instance) {
 
 function destroyEventListeners(instance) {
   if (instance._subscriptions) {
-    for (let type in instance._subscriptions) {
+    for (const type in instance._subscriptions) {
       instance._subscriptions[type]();
     }
   }
@@ -167,7 +170,7 @@ function applyNodeProps(instance, props, prevProps = {}) {
     }
   }
 
-  for (let type in EVENT_TYPES) {
+  for (const type in EVENT_TYPES) {
     addEventListeners(instance, EVENT_TYPES[type], props[type]);
   }
 }
@@ -238,8 +241,10 @@ function applyTextProps(instance, props, prevProps = {}) {
   }
 }
 
-export * from 'shared/HostConfigWithNoPersistence';
-export * from 'shared/HostConfigWithNoHydration';
+export * from 'react-reconciler/src/ReactFiberHostConfigWithNoPersistence';
+export * from 'react-reconciler/src/ReactFiberHostConfigWithNoHydration';
+export * from 'react-reconciler/src/ReactFiberHostConfigWithNoScopes';
+export * from 'react-reconciler/src/ReactFiberHostConfigWithNoTestSelectors';
 
 export function appendInitialChild(parentInstance, child) {
   if (typeof child === 'string') {
@@ -303,6 +308,7 @@ export function getPublicInstance(instance) {
 
 export function prepareForCommit() {
   // Noop
+  return null;
 }
 
 export function prepareUpdate(domElement, type, oldProps, newProps) {
@@ -329,14 +335,6 @@ export function getChildHostContext() {
   return NO_CONTEXT;
 }
 
-export function getChildHostContextForEventComponent() {
-  return NO_CONTEXT;
-}
-
-export function getChildHostContextForEventTarget() {
-  return NO_CONTEXT;
-}
-
 export const scheduleTimeout = setTimeout;
 export const cancelTimeout = clearTimeout;
 export const noTimeout = -1;
@@ -349,6 +347,9 @@ export function shouldSetTextContent(type, props) {
 
 // The ART renderer is secondary to the React DOM renderer.
 export const isPrimaryRenderer = false;
+
+// The ART renderer shouldn't trigger missing act() warnings
+export const warnsIfNotActing = false;
 
 export const supportsMutation = true;
 
@@ -428,45 +429,80 @@ export function unhideTextInstance(textInstance, text): void {
   // Noop
 }
 
-export function mountEventComponent(
-  eventComponentInstance: ReactEventComponentInstance,
+export function clearContainer(container) {
+  // TODO Implement this
+}
+
+export function DEPRECATED_mountResponderInstance(
+  responder: ReactEventResponder<any, any>,
+  responderInstance: ReactEventResponderInstance<any, any>,
+  props: Object,
+  state: Object,
+  instance: Object,
 ) {
   throw new Error('Not yet implemented.');
 }
 
-export function updateEventComponent(
-  eventComponentInstance: ReactEventComponentInstance,
-) {
-  throw new Error('Not yet implemented.');
-}
-
-export function unmountEventComponent(
-  eventComponentInstance: ReactEventComponentInstance,
+export function DEPRECATED_unmountResponderInstance(
+  responderInstance: ReactEventResponderInstance<any, any>,
 ): void {
   throw new Error('Not yet implemented.');
 }
 
-export function getEventTargetChildElement(
-  type: Symbol | number,
-  props: Props,
-): null {
+export function getFundamentalComponentInstance(fundamentalInstance) {
   throw new Error('Not yet implemented.');
 }
 
-export function handleEventTarget(
-  type: Symbol | number,
-  props: Props,
-  rootContainerInstance: Container,
-  internalInstanceHandle: Object,
-): boolean {
+export function mountFundamentalComponent(fundamentalInstance) {
   throw new Error('Not yet implemented.');
 }
 
-export function commitEventTarget(
-  type: Symbol | number,
-  props: Props,
-  instance: Instance,
-  parentInstance: Instance,
-): void {
+export function shouldUpdateFundamentalComponent(fundamentalInstance) {
   throw new Error('Not yet implemented.');
+}
+
+export function updateFundamentalComponent(fundamentalInstance) {
+  throw new Error('Not yet implemented.');
+}
+
+export function unmountFundamentalComponent(fundamentalInstance) {
+  throw new Error('Not yet implemented.');
+}
+
+export function getInstanceFromNode(node) {
+  throw new Error('Not yet implemented.');
+}
+
+export function removeInstanceEventHandles(instance) {
+  // noop
+}
+
+export function isOpaqueHydratingObject(value: mixed): boolean {
+  throw new Error('Not yet implemented');
+}
+
+export function makeOpaqueHydratingObject(
+  attemptToReadValue: () => void,
+): OpaqueIDType {
+  throw new Error('Not yet implemented.');
+}
+
+export function makeClientId(): OpaqueIDType {
+  throw new Error('Not yet implemented');
+}
+
+export function makeClientIdInDEV(warnOnAccessInDEV: () => void): OpaqueIDType {
+  throw new Error('Not yet implemented');
+}
+
+export function beforeActiveInstanceBlur() {
+  // noop
+}
+
+export function afterActiveInstanceBlur() {
+  // noop
+}
+
+export function preparePortalMount(portalInstance: any): void {
+  // noop
 }

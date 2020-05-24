@@ -37,15 +37,13 @@ export opaque type UpdatePayload = mixed; // eslint-disable-line no-undef
 export opaque type ChildSet = mixed; // eslint-disable-line no-undef
 export opaque type TimeoutHandle = mixed; // eslint-disable-line no-undef
 export opaque type NoTimeout = mixed; // eslint-disable-line no-undef
+export opaque type RendererInspectionConfig = mixed; // eslint-disable-line no-undef
+export opaque type OpaqueIDType = mixed;
 export type EventResponder = any;
 
 export const getPublicInstance = $$$hostConfig.getPublicInstance;
 export const getRootHostContext = $$$hostConfig.getRootHostContext;
 export const getChildHostContext = $$$hostConfig.getChildHostContext;
-export const getChildHostContextForEventComponent =
-  $$$hostConfig.getChildHostContextForEventComponent;
-export const getChildHostContextForEventTarget =
-  $$$hostConfig.getChildHostContextForEventTarget;
 export const prepareForCommit = $$$hostConfig.prepareForCommit;
 export const resetAfterCommit = $$$hostConfig.resetAfterCommit;
 export const createInstance = $$$hostConfig.createInstance;
@@ -56,19 +54,53 @@ export const shouldSetTextContent = $$$hostConfig.shouldSetTextContent;
 export const shouldDeprioritizeSubtree =
   $$$hostConfig.shouldDeprioritizeSubtree;
 export const createTextInstance = $$$hostConfig.createTextInstance;
-export const scheduleTimeout = $$$hostConfig.setTimeout;
-export const cancelTimeout = $$$hostConfig.clearTimeout;
+export const scheduleTimeout = $$$hostConfig.scheduleTimeout;
+export const cancelTimeout = $$$hostConfig.cancelTimeout;
 export const noTimeout = $$$hostConfig.noTimeout;
 export const now = $$$hostConfig.now;
 export const isPrimaryRenderer = $$$hostConfig.isPrimaryRenderer;
+export const warnsIfNotActing = $$$hostConfig.warnsIfNotActing;
 export const supportsMutation = $$$hostConfig.supportsMutation;
 export const supportsPersistence = $$$hostConfig.supportsPersistence;
 export const supportsHydration = $$$hostConfig.supportsHydration;
-export const mountEventComponent = $$$hostConfig.mountEventComponent;
-export const updateEventComponent = $$$hostConfig.updateEventComponent;
-export const handleEventTarget = $$$hostConfig.handleEventTarget;
-export const getEventTargetChildElement =
-  $$$hostConfig.getEventTargetChildElement;
+export const DEPRECATED_mountResponderInstance =
+  $$$hostConfig.DEPRECATED_mountResponderInstance;
+export const DEPRECATED_unmountResponderInstance =
+  $$$hostConfig.DEPRECATED_unmountResponderInstance;
+export const getFundamentalComponentInstance =
+  $$$hostConfig.getFundamentalComponentInstance;
+export const mountFundamentalComponent =
+  $$$hostConfig.mountFundamentalComponent;
+export const shouldUpdateFundamentalComponent =
+  $$$hostConfig.shouldUpdateFundamentalComponent;
+export const getInstanceFromNode = $$$hostConfig.getInstanceFromNode;
+export const removeInstanceEventHandles =
+  $$$hostConfig.removeInstanceEventHandles;
+export const isOpaqueHydratingObject = $$$hostConfig.isOpaqueHydratingObject;
+export const makeOpaqueHydratingObject =
+  $$$hostConfig.makeOpaqueHydratingObject;
+export const makeClientId = $$$hostConfig.makeClientId;
+export const makeClientIdInDEV = $$$hostConfig.makeClientIdInDEV;
+export const beforeActiveInstanceBlur = $$$hostConfig.beforeActiveInstanceBlur;
+export const afterActiveInstanceBlur = $$$hostConfig.afterActiveInstanceBlur;
+export const preparePortalMount = $$$hostConfig.preparePortalMount;
+export const prepareScopeUpdate = $$$hostConfig.preparePortalMount;
+export const removeScopeEventHandles = $$$hostConfig.removeScopeEventHandles;
+export const getInstanceFromScope = $$$hostConfig.getInstanceFromScope;
+
+// -------------------
+//      Test selectors
+//     (optional)
+// -------------------
+export const supportsTestSelectors = $$$hostConfig.supportsTestSelectors;
+export const findFiberRoot = $$$hostConfig.findFiberRoot;
+export const getBoundingRect = $$$hostConfig.getBoundingRect;
+export const getTextContent = $$$hostConfig.getTextContent;
+export const isHiddenSubtree = $$$hostConfig.isHiddenSubtree;
+export const matchAccessibilityRole = $$$hostConfig.matchAccessibilityRole;
+export const setFocusIfFocusable = $$$hostConfig.setFocusIfFocusable;
+export const setupIntersectionObserver =
+  $$$hostConfig.setupIntersectionObserver;
 
 // -------------------
 //      Mutation
@@ -88,10 +120,11 @@ export const hideInstance = $$$hostConfig.hideInstance;
 export const hideTextInstance = $$$hostConfig.hideTextInstance;
 export const unhideInstance = $$$hostConfig.unhideInstance;
 export const unhideTextInstance = $$$hostConfig.unhideTextInstance;
-export const unmountEventComponent = $$$hostConfig.unmountEventComponent;
-export const commitTouchHitTargetUpdate =
-  $$$hostConfig.commitTouchHitTargetUpdate;
-export const commitEventTarget = $$$hostConfig.commitEventTarget;
+export const updateFundamentalComponent =
+  $$$hostConfig.updateFundamentalComponent;
+export const unmountFundamentalComponent =
+  $$$hostConfig.unmountFundamentalComponent;
+export const clearContainer = $$$hostConfig.clearContainer;
 
 // -------------------
 //     Persistence
@@ -106,6 +139,7 @@ export const finalizeContainerChildren =
 export const replaceContainerChildren = $$$hostConfig.replaceContainerChildren;
 export const cloneHiddenInstance = $$$hostConfig.cloneHiddenInstance;
 export const cloneHiddenTextInstance = $$$hostConfig.cloneHiddenTextInstance;
+export const cloneFundamentalInstance = $$$hostConfig.cloneInstance;
 
 // -------------------
 //     Hydration
@@ -125,8 +159,12 @@ export const getNextHydratableSibling = $$$hostConfig.getNextHydratableSibling;
 export const getFirstHydratableChild = $$$hostConfig.getFirstHydratableChild;
 export const hydrateInstance = $$$hostConfig.hydrateInstance;
 export const hydrateTextInstance = $$$hostConfig.hydrateTextInstance;
+export const hydrateSuspenseInstance = $$$hostConfig.hydrateSuspenseInstance;
 export const getNextHydratableInstanceAfterSuspenseInstance =
   $$$hostConfig.getNextHydratableInstanceAfterSuspenseInstance;
+export const commitHydratedContainer = $$$hostConfig.commitHydratedContainer;
+export const commitHydratedSuspenseInstance =
+  $$$hostConfig.commitHydratedSuspenseInstance;
 export const clearSuspenseBoundary = $$$hostConfig.clearSuspenseBoundary;
 export const clearSuspenseBoundaryFromContainer =
   $$$hostConfig.clearSuspenseBoundaryFromContainer;

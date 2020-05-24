@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-/* eslint-disable react-internal/warning-and-invariant-args */
+/* eslint-disable react-internal/invariant-args */
 
 'use strict';
 
@@ -15,7 +15,7 @@ import invariant from 'shared/invariant';
 
 // Map of viewTag -> {children: [childTag], parent: ?parentTag}
 const roots = [];
-let views = new Map();
+const views = new Map();
 
 function autoCreateRoot(tag) {
   // Seriously, this is how we distinguish roots in RN.
@@ -88,6 +88,7 @@ const RCTUIManager = {
       viewName: viewName,
     });
   }),
+  dispatchViewManagerCommand: jest.fn(),
   setJSResponder: jest.fn(),
   setChildren: jest.fn(function setChildren(parentTag, reactTags) {
     autoCreateRoot(parentTag);

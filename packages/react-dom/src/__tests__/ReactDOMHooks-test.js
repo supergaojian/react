@@ -32,8 +32,8 @@ describe('ReactDOMHooks', () => {
   });
 
   it('can ReactDOM.render() from useEffect', () => {
-    let container2 = document.createElement('div');
-    let container3 = document.createElement('div');
+    const container2 = document.createElement('div');
+    const container3 = document.createElement('div');
 
     function Example1({n}) {
       React.useEffect(() => {
@@ -57,7 +57,7 @@ describe('ReactDOMHooks', () => {
     expect(container.textContent).toBe('1');
     expect(container2.textContent).toBe('');
     expect(container3.textContent).toBe('');
-    Scheduler.flushAll();
+    Scheduler.unstable_flushAll();
     expect(container.textContent).toBe('1');
     expect(container2.textContent).toBe('2');
     expect(container3.textContent).toBe('3');
@@ -66,7 +66,7 @@ describe('ReactDOMHooks', () => {
     expect(container.textContent).toBe('2');
     expect(container2.textContent).toBe('2'); // Not flushed yet
     expect(container3.textContent).toBe('3'); // Not flushed yet
-    Scheduler.flushAll();
+    Scheduler.unstable_flushAll();
     expect(container.textContent).toBe('2');
     expect(container2.textContent).toBe('4');
     expect(container3.textContent).toBe('6');
@@ -82,10 +82,10 @@ describe('ReactDOMHooks', () => {
       });
 
       return (
-        <React.Fragment>
+        <>
           <input ref={inputRef} onInput={handleInput} />
           <label ref={labelRef}>{text}</label>
-        </React.Fragment>
+        </>
       );
     };
 
@@ -105,6 +105,7 @@ describe('ReactDOMHooks', () => {
     expect(labelRef.current.innerHTML).toBe('abc');
   });
 
+  // @gate experimental
   it('should not bail out when an update is scheduled from within an event handler in Concurrent Mode', () => {
     const {createRef, useCallback, useState} = React;
 
@@ -115,10 +116,10 @@ describe('ReactDOMHooks', () => {
       });
 
       return (
-        <React.Fragment>
+        <>
           <input ref={inputRef} onInput={handleInput} />
           <label ref={labelRef}>{text}</label>
-        </React.Fragment>
+        </>
       );
     };
 
@@ -128,14 +129,14 @@ describe('ReactDOMHooks', () => {
     const root = ReactDOM.unstable_createRoot(container);
     root.render(<Example inputRef={inputRef} labelRef={labelRef} />);
 
-    Scheduler.flushAll();
+    Scheduler.unstable_flushAll();
 
     inputRef.current.value = 'abc';
     inputRef.current.dispatchEvent(
       new Event('input', {bubbles: true, cancelable: true}),
     );
 
-    Scheduler.flushAll();
+    Scheduler.unstable_flushAll();
 
     expect(labelRef.current.innerHTML).toBe('abc');
   });

@@ -33,13 +33,16 @@ describe('ReactDOMSuspensePlaceholder', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
 
-    TextResource = ReactCache.unstable_createResource(([text, ms = 0]) => {
-      return new Promise((resolve, reject) =>
-        setTimeout(() => {
-          resolve(text);
-        }, ms),
-      );
-    }, ([text, ms]) => text);
+    TextResource = ReactCache.unstable_createResource(
+      ([text, ms = 0]) => {
+        return new Promise((resolve, reject) =>
+          setTimeout(() => {
+            resolve(text);
+          }, ms),
+        );
+      },
+      ([text, ms]) => text,
+    );
   });
 
   afterEach(() => {
@@ -69,7 +72,7 @@ describe('ReactDOMSuspensePlaceholder', () => {
   }
 
   it('hides and unhides timed out DOM elements', async () => {
-    let divs = [
+    const divs = [
       React.createRef(null),
       React.createRef(null),
       React.createRef(null),
@@ -96,7 +99,7 @@ describe('ReactDOMSuspensePlaceholder', () => {
 
     await advanceTimers(500);
 
-    Scheduler.flushAll();
+    Scheduler.unstable_flushAll();
 
     expect(window.getComputedStyle(divs[0].current).display).toEqual('block');
     expect(window.getComputedStyle(divs[1].current).display).toEqual('block');
@@ -119,7 +122,7 @@ describe('ReactDOMSuspensePlaceholder', () => {
 
     await advanceTimers(500);
 
-    Scheduler.flushAll();
+    Scheduler.unstable_flushAll();
 
     expect(container.textContent).toEqual('ABC');
   });
@@ -168,7 +171,7 @@ describe('ReactDOMSuspensePlaceholder', () => {
 
       await advanceTimers(500);
 
-      Scheduler.flushAll();
+      Scheduler.unstable_flushAll();
 
       expect(container.innerHTML).toEqual(
         '<span style="display: inline;">Sibling</span><span style="">Async</span>',
@@ -241,7 +244,7 @@ describe('ReactDOMSuspensePlaceholder', () => {
     let suspendOnce = Promise.resolve();
     function Suspend() {
       if (suspendOnce) {
-        let promise = suspendOnce;
+        const promise = suspendOnce;
         suspendOnce = null;
         throw promise;
       }

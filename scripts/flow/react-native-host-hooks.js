@@ -16,25 +16,40 @@ import type {
   ReactNativeBaseComponentViewConfig,
   ViewConfigGetter,
 } from 'react-native-renderer/src/ReactNativeTypes';
-import type {RNTopLevelEventType} from 'events/TopLevelEventTypes';
+import type {RNTopLevelEventType} from 'legacy-events/TopLevelEventTypes';
+import type {CapturedError} from 'react-reconciler/src/ReactCapturedValue';
+import type {Fiber} from 'react-reconciler/src/ReactInternalTypes';
+
+type DeepDifferOptions = {|+unsafelyIgnoreFunctions?: boolean|};
 
 declare module 'react-native/Libraries/ReactPrivate/ReactNativePrivateInterface' {
-  declare export function deepDiffer(one: any, two: any): boolean;
+  declare export function deepDiffer(
+    one: any,
+    two: any,
+    maxDepth?: number,
+    options?: DeepDifferOptions,
+  ): boolean;
+  declare export function deepDiffer(
+    one: any,
+    two: any,
+    options: DeepDifferOptions,
+  ): boolean;
   declare export function deepFreezeAndThrowOnMutationInDev<T>(obj: T): T;
   declare export function flattenStyle(style: any): any;
   declare export var RCTEventEmitter: {
     register: (eventEmitter: mixed) => void,
+    ...
   };
   declare export var TextInputState: {
     blurTextInput: (object: any) => void,
     focusTextInput: (object: any) => void,
+    ...
   };
-  declare export var ExceptionsManager: {
-    handleException: (error: Error, isFatal: boolean) => void,
+  declare export var ReactFiberErrorDialog: {
+    showErrorDialog: (error: CapturedError) => boolean,
+    ...
   };
-  declare export var Platform: {
-    OS: string,
-  };
+  declare export var Platform: {OS: string, ...};
   declare export var UIManager: {
     customBubblingEventTypes: Object,
     customDirectEventTypes: Object,
@@ -43,6 +58,11 @@ declare module 'react-native/Libraries/ReactPrivate/ReactNativePrivateInterface'
       viewName: string,
       rootTag: number,
       props: ?Object,
+    ) => void,
+    dispatchViewManagerCommand: (
+      reactTag: number,
+      command: string,
+      args: Array<any>,
     ) => void,
     manageChildren: (
       containerTag: number,
@@ -72,13 +92,27 @@ declare module 'react-native/Libraries/ReactPrivate/ReactNativePrivateInterface'
         height?: number,
         format?: 'png' | 'jpeg',
         quality?: number,
+        ...
       },
     ) => Promise<any>,
     setJSResponder: (reactTag: number, blockNativeResponder: boolean) => void,
     clearJSResponder: () => void,
+    findSubviewIn: (
+      reactTag: ?number,
+      point: Array<number>,
+      callback: (
+        nativeViewTag: number,
+        left: number,
+        top: number,
+        width: number,
+        height: number,
+      ) => void,
+    ) => void,
+    ...
   };
   declare export var BatchedBridge: {
     registerCallableModule: (name: string, module: Object) => void,
+    ...
   };
   declare export var ReactNativeViewConfigRegistry: {
     customBubblingEventTypes: Object,
@@ -87,6 +121,7 @@ declare module 'react-native/Libraries/ReactPrivate/ReactNativePrivateInterface'
 
     register: (name: string, callback: ViewConfigGetter) => string,
     get: (name: string) => ReactNativeBaseComponentViewConfig,
+    ...
   };
 }
 
@@ -120,6 +155,8 @@ declare var nativeFabricUIManager: {
     ) => void,
   ) => void,
 
+  dispatchCommand: (node: Object, command: string, args: Array<any>) => void,
+
   measure: (node: Node, callback: MeasureOnSuccessCallback) => void,
   measureInWindow: (
     node: Node,
@@ -131,6 +168,13 @@ declare var nativeFabricUIManager: {
     onFail: () => void,
     onSuccess: MeasureLayoutOnSuccessCallback,
   ) => void,
+  findNodeAtPoint: (
+    node: Node,
+    locationX: number,
+    locationY: number,
+    callback: (Fiber) => void,
+  ) => void,
+  ...
 };
 
 declare module 'View' {

@@ -11,12 +11,14 @@ import * as SchedulerTracing from 'scheduler/tracing';
 import ReactCurrentDispatcher from '../ReactCurrentDispatcher';
 import ReactCurrentOwner from '../ReactCurrentOwner';
 import ReactDebugCurrentFrame from '../ReactDebugCurrentFrame';
+import IsSomeRendererActing from '../IsSomeRendererActing';
+import ReactCurrentBatchConfig from '../ReactCurrentBatchConfig';
 
 const ReactSharedInternals = {
   ReactCurrentDispatcher,
   ReactCurrentOwner,
-  // used by act()
-  ReactShouldWarnActingUpdates: {current: false},
+  IsSomeRendererActing,
+  ReactCurrentBatchConfig,
   // Used by renderers to avoid bundling object-assign twice in UMD bundles:
   assign,
 };

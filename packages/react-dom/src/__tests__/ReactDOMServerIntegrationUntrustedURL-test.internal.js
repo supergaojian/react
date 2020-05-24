@@ -16,6 +16,7 @@ const ReactDOMServerIntegrationUtils = require('./utils/ReactDOMServerIntegratio
 let React;
 let ReactDOM;
 let ReactDOMServer;
+let ReactTestUtils;
 
 function runTests(itRenders, itRejectsRendering, expectToReject) {
   itRenders('a http link with the word javascript in it', async render => {
@@ -138,7 +139,7 @@ function runTests(itRenders, itRejectsRendering, expectToReject) {
   );
 
   it('rejects a javascript protocol href if it is added during an update', () => {
-    let container = document.createElement('div');
+    const container = document.createElement('div');
     ReactDOM.render(<a href="thisisfine">click me</a>, container);
     expectToReject(() => {
       ReactDOM.render(<a href="javascript:notfine">click me</a>, container);
@@ -152,11 +153,13 @@ describe('ReactDOMServerIntegration - Untrusted URLs', () => {
     React = require('react');
     ReactDOM = require('react-dom');
     ReactDOMServer = require('react-dom/server');
+    ReactTestUtils = require('react-dom/test-utils');
 
     // Make them available to the helpers.
     return {
       ReactDOM,
       ReactDOMServer,
+      ReactTestUtils,
     };
   }
 
@@ -167,7 +170,7 @@ describe('ReactDOMServerIntegration - Untrusted URLs', () => {
   });
 
   runTests(itRenders, itRenders, fn =>
-    expect(fn).toWarnDev(
+    expect(fn).toErrorDev(
       'Warning: A future version of React will block javascript: URLs as a security precaution. ' +
         'Use event handlers instead if you can. If you need to generate unsafe HTML try using ' +
         'dangerouslySetInnerHTML instead. React was passed "javascript:notfine".\n' +
@@ -185,11 +188,13 @@ describe('ReactDOMServerIntegration - Untrusted URLs - disableJavaScriptURLs', (
     React = require('react');
     ReactDOM = require('react-dom');
     ReactDOMServer = require('react-dom/server');
+    ReactTestUtils = require('react-dom/test-utils');
 
     // Make them available to the helpers.
     return {
       ReactDOM,
       ReactDOMServer,
+      ReactTestUtils,
     };
   }
 
@@ -239,7 +244,7 @@ describe('ReactDOMServerIntegration - Untrusted URLs - disableJavaScriptURLs', (
     }
 
     let toStringCalls = 0;
-    let firstIsSafe = {
+    const firstIsSafe = {
       toString() {
         // This tries to avoid the validation by pretending to be safe
         // the first times it is called and then becomes dangerous.
@@ -257,7 +262,7 @@ describe('ReactDOMServerIntegration - Untrusted URLs - disableJavaScriptURLs', (
   });
 
   it('rejects a javascript protocol href if it is added during an update twice', () => {
-    let container = document.createElement('div');
+    const container = document.createElement('div');
     ReactDOM.render(<a href="thisisfine">click me</a>, container);
     expectToReject(() => {
       ReactDOM.render(<a href="javascript:notfine">click me</a>, container);

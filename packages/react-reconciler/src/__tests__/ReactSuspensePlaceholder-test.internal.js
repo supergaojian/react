@@ -23,7 +23,7 @@ describe('ReactSuspensePlaceholder', () => {
     jest.resetModules();
 
     ReactFeatureFlags = require('shared/ReactFeatureFlags');
-    ReactFeatureFlags.debugRenderPhaseSideEffectsForStrictMode = false;
+
     ReactFeatureFlags.enableProfilerTimer = true;
     ReactFeatureFlags.replayFailedUnitOfWorkWithInvokeGuardedCallback = false;
     React = require('react');
@@ -34,66 +34,73 @@ describe('ReactSuspensePlaceholder', () => {
     Profiler = React.Profiler;
     Suspense = React.Suspense;
 
-    TextResource = ReactCache.unstable_createResource(([text, ms = 0]) => {
-      let listeners = null;
-      let status = 'pending';
-      let value = null;
-      return {
-        then(resolve, reject) {
-          switch (status) {
-            case 'pending': {
-              if (listeners === null) {
-                listeners = [{resolve, reject}];
-                setTimeout(() => {
-                  if (textResourceShouldFail) {
-                    Scheduler.yieldValue(`Promise rejected [${text}]`);
-                    status = 'rejected';
-                    value = new Error('Failed to load: ' + text);
-                    listeners.forEach(listener => listener.reject(value));
-                  } else {
-                    Scheduler.yieldValue(`Promise resolved [${text}]`);
-                    status = 'resolved';
-                    value = text;
-                    listeners.forEach(listener => listener.resolve(value));
-                  }
-                }, ms);
-              } else {
-                listeners.push({resolve, reject});
+    TextResource = ReactCache.unstable_createResource(
+      ([text, ms = 0]) => {
+        let listeners = null;
+        let status = 'pending';
+        let value = null;
+        return {
+          then(resolve, reject) {
+            switch (status) {
+              case 'pending': {
+                if (listeners === null) {
+                  listeners = [{resolve, reject}];
+                  setTimeout(() => {
+                    if (textResourceShouldFail) {
+                      Scheduler.unstable_yieldValue(
+                        `Promise rejected [${text}]`,
+                      );
+                      status = 'rejected';
+                      value = new Error('Failed to load: ' + text);
+                      listeners.forEach(listener => listener.reject(value));
+                    } else {
+                      Scheduler.unstable_yieldValue(
+                        `Promise resolved [${text}]`,
+                      );
+                      status = 'resolved';
+                      value = text;
+                      listeners.forEach(listener => listener.resolve(value));
+                    }
+                  }, ms);
+                } else {
+                  listeners.push({resolve, reject});
+                }
+                break;
               }
-              break;
+              case 'resolved': {
+                resolve(value);
+                break;
+              }
+              case 'rejected': {
+                reject(value);
+                break;
+              }
             }
-            case 'resolved': {
-              resolve(value);
-              break;
-            }
-            case 'rejected': {
-              reject(value);
-              break;
-            }
-          }
-        },
-      };
-    }, ([text, ms]) => text);
+          },
+        };
+      },
+      ([text, ms]) => text,
+    );
     textResourceShouldFail = false;
   });
 
   function Text({fakeRenderDuration = 0, text = 'Text'}) {
-    Scheduler.advanceTime(fakeRenderDuration);
-    Scheduler.yieldValue(text);
+    Scheduler.unstable_advanceTime(fakeRenderDuration);
+    Scheduler.unstable_yieldValue(text);
     return text;
   }
 
   function AsyncText({fakeRenderDuration = 0, ms, text}) {
-    Scheduler.advanceTime(fakeRenderDuration);
+    Scheduler.unstable_advanceTime(fakeRenderDuration);
     try {
       TextResource.read([text, ms]);
-      Scheduler.yieldValue(text);
+      Scheduler.unstable_yieldValue(text);
       return text;
     } catch (promise) {
       if (typeof promise.then === 'function') {
-        Scheduler.yieldValue(`Suspend! [${text}]`);
+        Scheduler.unstable_yieldValue(`Suspend! [${text}]`);
       } else {
-        Scheduler.yieldValue(`Error! [${text}]`);
+        Scheduler.unstable_yieldValue(`Error! [${text}]`);
       }
       throw promise;
     }
@@ -103,7 +110,7 @@ describe('ReactSuspensePlaceholder', () => {
     class HiddenText extends React.PureComponent {
       render() {
         const text = this.props.text;
-        Scheduler.yieldValue(text);
+        Scheduler.unstable_yieldValue(text);
         return <span hidden={true}>{text}</span>;
       }
     }
@@ -134,11 +141,11 @@ describe('ReactSuspensePlaceholder', () => {
     expect(Scheduler).toFlushAndYield(['A', 'B', 'C']);
 
     expect(ReactNoop).toMatchRenderedOutput(
-      <React.Fragment>
+      <>
         <span hidden={true}>A</span>
         <span>B</span>
         <span>C</span>
-      </React.Fragment>,
+      </>,
     );
 
     // Update
@@ -149,12 +156,12 @@ describe('ReactSuspensePlaceholder', () => {
     jest.advanceTimersByTime(750);
     expect(Scheduler).toFlushAndYield([]);
     expect(ReactNoop).toMatchRenderedOutput(
-      <React.Fragment>
+      <>
         <span hidden={true}>A</span>
         <span hidden={true}>B</span>
         <span hidden={true}>C</span>
         Loading...
-      </React.Fragment>,
+      </>,
     );
 
     // Resolve the promise
@@ -165,11 +172,11 @@ describe('ReactSuspensePlaceholder', () => {
     // Render the final update. A should still be hidden, because it was
     // given a `hidden` prop.
     expect(ReactNoop).toMatchRenderedOutput(
-      <React.Fragment>
+      <>
         <span hidden={true}>A</span>
         <span>B2</span>
         <span>C</span>
-      </React.Fragment>,
+      </>,
     );
   });
 
@@ -278,19 +285,19 @@ describe('ReactSuspensePlaceholder', () => {
       onRender = jest.fn();
 
       const Fallback = () => {
-        Scheduler.yieldValue('Fallback');
-        Scheduler.advanceTime(10);
+        Scheduler.unstable_yieldValue('Fallback');
+        Scheduler.unstable_advanceTime(10);
         return 'Loading...';
       };
 
       const Suspending = () => {
-        Scheduler.yieldValue('Suspending');
-        Scheduler.advanceTime(2);
+        Scheduler.unstable_yieldValue('Suspending');
+        Scheduler.unstable_advanceTime(2);
         return <AsyncText ms={1000} text="Loaded" fakeRenderDuration={1} />;
       };
 
       App = ({shouldSuspend, text = 'Text', textRenderDuration = 5}) => {
-        Scheduler.yieldValue('App');
+        Scheduler.unstable_yieldValue('App');
         return (
           <Profiler id="root" onRender={onRender}>
             <Suspense fallback={<Fallback />}>
@@ -396,10 +403,11 @@ describe('ReactSuspensePlaceholder', () => {
         expect(onRender).toHaveBeenCalledTimes(2);
 
         // The suspense update should only show the "Loading..." Fallback.
-        // Both durations should include 10ms spent rendering Fallback
-        // plus the 8ms rendering the (hidden) components.
+        // The actual duration should include 10ms spent rendering Fallback,
+        // plus the 8ms render all of the hidden, suspended subtree.
+        // But the tree base duration should only include 10ms spent rendering Fallback,
         expect(onRender.mock.calls[1][2]).toBe(18);
-        expect(onRender.mock.calls[1][3]).toBe(18);
+        expect(onRender.mock.calls[1][3]).toBe(10);
 
         ReactNoop.renderLegacySyncRoot(
           <App shouldSuspend={true} text="New" textRenderDuration={6} />,
@@ -414,11 +422,16 @@ describe('ReactSuspensePlaceholder', () => {
         expect(ReactNoop).toMatchRenderedOutput('Loading...');
         expect(onRender).toHaveBeenCalledTimes(3);
 
-        // If we force another update while still timed out,
-        // but this time the Text component took 1ms longer to render.
-        // This should impact both actualDuration and treeBaseDuration.
-        expect(onRender.mock.calls[2][2]).toBe(19);
-        expect(onRender.mock.calls[2][3]).toBe(19);
+        if (gate(flags => flags.new)) {
+          expect(onRender.mock.calls[1][2]).toBe(18);
+          expect(onRender.mock.calls[1][3]).toBe(10);
+        } else {
+          // If we force another update while still timed out,
+          // but this time the Text component took 1ms longer to render.
+          // This should impact both actualDuration and treeBaseDuration.
+          expect(onRender.mock.calls[2][2]).toBe(19);
+          expect(onRender.mock.calls[2][3]).toBe(10);
+        }
 
         jest.advanceTimersByTime(1000);
 
@@ -436,10 +449,10 @@ describe('ReactSuspensePlaceholder', () => {
 
       it('properly accounts for base durations when a suspended times out in a concurrent tree', () => {
         ReactNoop.render(
-          <React.Fragment>
+          <>
             <App shouldSuspend={false} textRenderDuration={5} />
             <Suspense fallback={null} />
-          </React.Fragment>,
+          </>,
         );
 
         expect(Scheduler).toFlushAndYield(['App', 'Text']);
@@ -452,10 +465,10 @@ describe('ReactSuspensePlaceholder', () => {
         expect(onRender.mock.calls[0][3]).toBe(5);
 
         ReactNoop.render(
-          <React.Fragment>
+          <>
             <App shouldSuspend={true} textRenderDuration={5} />
             <Suspense fallback={null} />
-          </React.Fragment>,
+          </>,
         );
         expect(Scheduler).toFlushAndYield([
           'App',
@@ -474,23 +487,29 @@ describe('ReactSuspensePlaceholder', () => {
         // The suspense update should only show the "Loading..." Fallback.
         // The actual duration should include 10ms spent rendering Fallback,
         // plus the 8ms render all of the hidden, suspended subtree.
-        // But the tree base duration should only include 10ms spent rendering Fallback,
-        // plus the 5ms rendering the previously committed version of the hidden tree.
+        // But the tree base duration should only include 10ms spent rendering Fallback.
         expect(onRender.mock.calls[1][2]).toBe(18);
-        expect(onRender.mock.calls[1][3]).toBe(15);
+        expect(onRender.mock.calls[1][3]).toBe(10);
 
         // Update again while timed out.
         // Since this test was originally written we added an optimization to avoid
         // suspending in the case that we already timed out. To simulate the old
         // behavior, we add a different suspending boundary as a sibling.
         ReactNoop.render(
-          <React.Fragment>
+          <>
             <App shouldSuspend={true} text="New" textRenderDuration={6} />
             <Suspense fallback={null}>
               <AsyncText ms={100} text="Sibling" fakeRenderDuration={1} />
             </Suspense>
-          </React.Fragment>,
+          </>,
         );
+
+        // TODO: This is here only to shift us into the next JND bucket. A
+        // consequence of AsyncText relying on the same timer queue as React's
+        // internal Suspense timer. We should decouple our AsyncText helpers
+        // from timers.
+        Scheduler.unstable_advanceTime(100);
+
         expect(Scheduler).toFlushAndYield([
           'App',
           'Suspending',

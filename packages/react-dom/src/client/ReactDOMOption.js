@@ -7,8 +7,7 @@
  * @flow
  */
 
-import React from 'react';
-import warning from 'shared/warning';
+import * as React from 'react';
 import {getToStringValue, toString} from './ToStringValue';
 
 let didWarnSelectedSetOnOption = false;
@@ -26,7 +25,7 @@ function flattenChildren(children) {
     if (child == null) {
       return;
     }
-    content += child;
+    content += (child: any);
     // Note: we don't warn about invalid children here.
     // Instead, this is done separately below so that
     // it happens during the hydration codepath too.
@@ -53,13 +52,12 @@ export function validateProps(element: Element, props: Object) {
         if (typeof child === 'string' || typeof child === 'number') {
           return;
         }
-        if (typeof child.type !== 'string') {
+        if (typeof (child: any).type !== 'string') {
           return;
         }
         if (!didWarnInvalidChild) {
           didWarnInvalidChild = true;
-          warning(
-            false,
+          console.error(
             'Only strings and numbers are supported as <option> children.',
           );
         }
@@ -68,8 +66,7 @@ export function validateProps(element: Element, props: Object) {
 
     // TODO: Remove support for `selected` in <option>.
     if (props.selected != null && !didWarnSelectedSetOnOption) {
-      warning(
-        false,
+      console.error(
         'Use the `defaultValue` or `value` props on <select> instead of ' +
           'setting `selected` on <option>.',
       );

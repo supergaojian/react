@@ -19,24 +19,20 @@ describe('ReactFiberHostContext', () => {
     jest.resetModules();
     React = require('react');
     ReactFiberReconciler = require('react-reconciler');
-    ConcurrentRoot = require('shared/ReactRootTags');
+    ConcurrentRoot = require('react-reconciler/src/ReactRootTags');
   });
 
   it('works with null host context', () => {
     let creates = 0;
     const Renderer = ReactFiberReconciler({
-      prepareForCommit: function() {},
+      prepareForCommit: function() {
+        return null;
+      },
       resetAfterCommit: function() {},
       getRootHostContext: function() {
         return null;
       },
       getChildHostContext: function() {
-        return null;
-      },
-      getChildHostContextForEventComponent: function() {
-        return null;
-      },
-      getChildHostContextForEventTarget: function() {
         return null;
       },
       shouldSetTextContent: function() {
@@ -57,6 +53,7 @@ describe('ReactFiberHostContext', () => {
       appendChildToContainer: function() {
         return null;
       },
+      clearContainer: function() {},
       supportsMutation: true,
     });
 
@@ -64,6 +61,7 @@ describe('ReactFiberHostContext', () => {
       /* root: */ null,
       ConcurrentRoot,
       false,
+      null,
     );
     Renderer.updateContainer(
       <a>
@@ -77,10 +75,11 @@ describe('ReactFiberHostContext', () => {
   });
 
   it('should send the context to prepareForCommit and resetAfterCommit', () => {
-    let rootContext = {};
+    const rootContext = {};
     const Renderer = ReactFiberReconciler({
       prepareForCommit: function(hostContext) {
         expect(hostContext).toBe(rootContext);
+        return null;
       },
       resetAfterCommit: function(hostContext) {
         expect(hostContext).toBe(rootContext);
@@ -109,6 +108,7 @@ describe('ReactFiberHostContext', () => {
       appendChildToContainer: function() {
         return null;
       },
+      clearContainer: function() {},
       supportsMutation: true,
     });
 
@@ -116,6 +116,7 @@ describe('ReactFiberHostContext', () => {
       rootContext,
       ConcurrentRoot,
       false,
+      null,
     );
     Renderer.updateContainer(
       <a>

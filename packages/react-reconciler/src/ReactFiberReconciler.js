@@ -7,541 +7,188 @@
  * @flow
  */
 
-import type {Fiber} from './ReactFiber';
-import type {FiberRoot} from './ReactFiberRoot';
-import type {RootTag} from 'shared/ReactRootTags';
-import type {
-  Instance,
-  TextInstance,
-  Container,
-  PublicInstance,
-} from './ReactFiberHostConfig';
-import type {ReactNodeList} from 'shared/ReactTypes';
-import type {ExpirationTime} from './ReactFiberExpirationTime';
-import type {SuspenseConfig} from './ReactFiberSuspenseConfig';
+import {enableNewReconciler} from 'shared/ReactFeatureFlags';
+
+// The entry file imports either the old or new version of the reconciler.
+// During build and testing, this indirection is always shimmed with the actual
+// modules, otherwise both reconcilers would be initialized. So this is really
+// only here for Flow purposes.
 
 import {
-  findCurrentHostFiber,
-  findCurrentHostFiberWithNoPortals,
-} from 'react-reconciler/reflection';
-import {get as getInstance} from 'shared/ReactInstanceMap';
-import {HostComponent, ClassComponent} from 'shared/ReactWorkTags';
-import getComponentName from 'shared/getComponentName';
-import invariant from 'shared/invariant';
-import warningWithoutStack from 'shared/warningWithoutStack';
-import ReactSharedInternals from 'shared/ReactSharedInternals';
+  createContainer as createContainer_old,
+  updateContainer as updateContainer_old,
+  batchedEventUpdates as batchedEventUpdates_old,
+  batchedUpdates as batchedUpdates_old,
+  unbatchedUpdates as unbatchedUpdates_old,
+  deferredUpdates as deferredUpdates_old,
+  discreteUpdates as discreteUpdates_old,
+  flushDiscreteUpdates as flushDiscreteUpdates_old,
+  flushControlled as flushControlled_old,
+  flushSync as flushSync_old,
+  flushPassiveEffects as flushPassiveEffects_old,
+  IsThisRendererActing as IsThisRendererActing_old,
+  getPublicRootInstance as getPublicRootInstance_old,
+  attemptSynchronousHydration as attemptSynchronousHydration_old,
+  attemptUserBlockingHydration as attemptUserBlockingHydration_old,
+  attemptContinuousHydration as attemptContinuousHydration_old,
+  attemptHydrationAtCurrentPriority as attemptHydrationAtCurrentPriority_old,
+  findHostInstance as findHostInstance_old,
+  findHostInstanceWithWarning as findHostInstanceWithWarning_old,
+  findHostInstanceWithNoPortals as findHostInstanceWithNoPortals_old,
+  shouldSuspend as shouldSuspend_old,
+  injectIntoDevTools as injectIntoDevTools_old,
+  act as act_old,
+  createPortal as createPortal_old,
+  createComponentSelector as createComponentSelector_old,
+  createHasPsuedoClassSelector as createHasPsuedoClassSelector_old,
+  createRoleSelector as createRoleSelector_old,
+  createTestNameSelector as createTestNameSelector_old,
+  createTextSelector as createTextSelector_old,
+  getFindAllNodesFailureDescription as getFindAllNodesFailureDescription_old,
+  findAllNodes as findAllNodes_old,
+  findBoundingRects as findBoundingRects_old,
+  focusWithin as focusWithin_old,
+  observeVisibleRects as observeVisibleRects_old,
+  registerMutableSourceForHydration as registerMutableSourceForHydration_old,
+} from './ReactFiberReconciler.old';
 
-import {getPublicInstance} from './ReactFiberHostConfig';
 import {
-  findCurrentUnmaskedContext,
-  processChildContext,
-  emptyContextObject,
-  isContextProvider as isLegacyContextProvider,
-} from './ReactFiberContext';
-import {createFiberRoot} from './ReactFiberRoot';
-import {injectInternals} from './ReactFiberDevToolsHook';
-import {
-  computeUniqueAsyncExpiration,
-  requestCurrentTime,
-  computeExpirationForFiber,
-  scheduleWork,
-  flushRoot,
-  batchedEventUpdates,
-  batchedUpdates,
-  unbatchedUpdates,
-  flushSync,
-  flushControlled,
-  deferredUpdates,
-  syncUpdates,
-  discreteUpdates,
-  flushDiscreteUpdates,
-  flushPassiveEffects,
-  warnIfNotScopedWithMatchingAct,
-  ReactActingRendererSigil,
-} from './ReactFiberWorkLoop';
-import {createUpdate, enqueueUpdate} from './ReactUpdateQueue';
-import ReactFiberInstrumentation from './ReactFiberInstrumentation';
-import {
-  getStackByFiberInDevAndProd,
-  phase as ReactCurrentFiberPhase,
-  current as ReactCurrentFiberCurrent,
-} from './ReactCurrentFiber';
-import {StrictMode} from './ReactTypeOfMode';
-import {Sync} from './ReactFiberExpirationTime';
-import {revertPassiveEffectsChange} from 'shared/ReactFeatureFlags';
-import {requestCurrentSuspenseConfig} from './ReactFiberSuspenseConfig';
-import {
-  scheduleRefresh,
-  setRefreshHandler,
-  findHostInstancesForRefresh,
-} from './ReactFiberHotReloading';
+  createContainer as createContainer_new,
+  updateContainer as updateContainer_new,
+  batchedEventUpdates as batchedEventUpdates_new,
+  batchedUpdates as batchedUpdates_new,
+  unbatchedUpdates as unbatchedUpdates_new,
+  deferredUpdates as deferredUpdates_new,
+  discreteUpdates as discreteUpdates_new,
+  flushDiscreteUpdates as flushDiscreteUpdates_new,
+  flushControlled as flushControlled_new,
+  flushSync as flushSync_new,
+  flushPassiveEffects as flushPassiveEffects_new,
+  IsThisRendererActing as IsThisRendererActing_new,
+  getPublicRootInstance as getPublicRootInstance_new,
+  attemptSynchronousHydration as attemptSynchronousHydration_new,
+  attemptUserBlockingHydration as attemptUserBlockingHydration_new,
+  attemptContinuousHydration as attemptContinuousHydration_new,
+  attemptHydrationAtCurrentPriority as attemptHydrationAtCurrentPriority_new,
+  findHostInstance as findHostInstance_new,
+  findHostInstanceWithWarning as findHostInstanceWithWarning_new,
+  findHostInstanceWithNoPortals as findHostInstanceWithNoPortals_new,
+  shouldSuspend as shouldSuspend_new,
+  injectIntoDevTools as injectIntoDevTools_new,
+  act as act_new,
+  createPortal as createPortal_new,
+  createComponentSelector as createComponentSelector_new,
+  createHasPsuedoClassSelector as createHasPsuedoClassSelector_new,
+  createRoleSelector as createRoleSelector_new,
+  createTestNameSelector as createTestNameSelector_new,
+  createTextSelector as createTextSelector_new,
+  getFindAllNodesFailureDescription as getFindAllNodesFailureDescription_new,
+  findAllNodes as findAllNodes_new,
+  findBoundingRects as findBoundingRects_new,
+  focusWithin as focusWithin_new,
+  observeVisibleRects as observeVisibleRects_new,
+  registerMutableSourceForHydration as registerMutableSourceForHydration_new,
+} from './ReactFiberReconciler.new';
 
-type OpaqueRoot = FiberRoot;
+export const createContainer = enableNewReconciler
+  ? createContainer_new
+  : createContainer_old;
+export const updateContainer = enableNewReconciler
+  ? updateContainer_new
+  : updateContainer_old;
+export const batchedEventUpdates = enableNewReconciler
+  ? batchedEventUpdates_new
+  : batchedEventUpdates_old;
+export const batchedUpdates = enableNewReconciler
+  ? batchedUpdates_new
+  : batchedUpdates_old;
+export const unbatchedUpdates = enableNewReconciler
+  ? unbatchedUpdates_new
+  : unbatchedUpdates_old;
+export const deferredUpdates = enableNewReconciler
+  ? deferredUpdates_new
+  : deferredUpdates_old;
+export const discreteUpdates = enableNewReconciler
+  ? discreteUpdates_new
+  : discreteUpdates_old;
+export const flushDiscreteUpdates = enableNewReconciler
+  ? flushDiscreteUpdates_new
+  : flushDiscreteUpdates_old;
+export const flushControlled = enableNewReconciler
+  ? flushControlled_new
+  : flushControlled_old;
+export const flushSync = enableNewReconciler ? flushSync_new : flushSync_old;
+export const flushPassiveEffects = enableNewReconciler
+  ? flushPassiveEffects_new
+  : flushPassiveEffects_old;
+export const IsThisRendererActing = enableNewReconciler
+  ? IsThisRendererActing_new
+  : IsThisRendererActing_old;
+export const getPublicRootInstance = enableNewReconciler
+  ? getPublicRootInstance_new
+  : getPublicRootInstance_old;
+export const attemptSynchronousHydration = enableNewReconciler
+  ? attemptSynchronousHydration_new
+  : attemptSynchronousHydration_old;
+export const attemptUserBlockingHydration = enableNewReconciler
+  ? attemptUserBlockingHydration_new
+  : attemptUserBlockingHydration_old;
+export const attemptContinuousHydration = enableNewReconciler
+  ? attemptContinuousHydration_new
+  : attemptContinuousHydration_old;
+export const attemptHydrationAtCurrentPriority = enableNewReconciler
+  ? attemptHydrationAtCurrentPriority_new
+  : attemptHydrationAtCurrentPriority_old;
+export const findHostInstance = enableNewReconciler
+  ? findHostInstance_new
+  : findHostInstance_old;
+export const findHostInstanceWithWarning = enableNewReconciler
+  ? findHostInstanceWithWarning_new
+  : findHostInstanceWithWarning_old;
+export const findHostInstanceWithNoPortals = enableNewReconciler
+  ? findHostInstanceWithNoPortals_new
+  : findHostInstanceWithNoPortals_old;
+export const shouldSuspend = enableNewReconciler
+  ? shouldSuspend_new
+  : shouldSuspend_old;
+export const injectIntoDevTools = enableNewReconciler
+  ? injectIntoDevTools_new
+  : injectIntoDevTools_old;
+export const act = enableNewReconciler ? act_new : act_old;
+export const createPortal = enableNewReconciler
+  ? createPortal_new
+  : createPortal_old;
+export const createComponentSelector = enableNewReconciler
+  ? createComponentSelector_new
+  : createComponentSelector_old;
+export const createHasPsuedoClassSelector = enableNewReconciler
+  ? createHasPsuedoClassSelector_new
+  : createHasPsuedoClassSelector_old;
+export const createRoleSelector = enableNewReconciler
+  ? createRoleSelector_new
+  : createRoleSelector_old;
+export const createTextSelector = enableNewReconciler
+  ? createTextSelector_new
+  : createTextSelector_old;
+export const createTestNameSelector = enableNewReconciler
+  ? createTestNameSelector_new
+  : createTestNameSelector_old;
+export const getFindAllNodesFailureDescription = enableNewReconciler
+  ? getFindAllNodesFailureDescription_new
+  : getFindAllNodesFailureDescription_old;
+export const findAllNodes = enableNewReconciler
+  ? findAllNodes_new
+  : findAllNodes_old;
+export const findBoundingRects = enableNewReconciler
+  ? findBoundingRects_new
+  : findBoundingRects_old;
+export const focusWithin = enableNewReconciler
+  ? focusWithin_new
+  : focusWithin_old;
+export const observeVisibleRects = enableNewReconciler
+  ? observeVisibleRects_new
+  : observeVisibleRects_old;
 
-// 0 is PROD, 1 is DEV.
-// Might add PROFILE later.
-type BundleType = 0 | 1;
-
-type DevToolsConfig = {|
-  bundleType: BundleType,
-  version: string,
-  rendererPackageName: string,
-  // Note: this actually *does* depend on Fiber internal fields.
-  // Used by "inspect clicked DOM element" in React DevTools.
-  findFiberByHostInstance?: (instance: Instance | TextInstance) => Fiber,
-  // Used by RN in-app inspector.
-  // This API is unfortunately RN-specific.
-  // TODO: Change it to accept Fiber instead and type it properly.
-  getInspectorDataForViewTag?: (tag: number) => Object,
-|};
-
-let didWarnAboutNestedUpdates;
-let didWarnAboutFindNodeInStrictMode;
-
-if (__DEV__) {
-  didWarnAboutNestedUpdates = false;
-  didWarnAboutFindNodeInStrictMode = {};
-}
-
-/**
- * 
- * @param {*} parentComponent 
- */
-function getContextForSubtree(
-  parentComponent: ?React$Component<any, any>,
-): Object {
-  if (!parentComponent) {
-    return emptyContextObject;
-  }
-
-  const fiber = getInstance(parentComponent);
-  const parentContext = findCurrentUnmaskedContext(fiber);
-
-  if (fiber.tag === ClassComponent) {
-    const Component = fiber.type;
-    if (isLegacyContextProvider(Component)) {
-      return processChildContext(fiber, Component, parentContext);
-    }
-  }
-
-  return parentContext;
-}
-/**
- * 调度根结点更新
- * @param {*} current 根结点FiberNode
- * @param {*} element 子节点
- * @param {*} expirationTime 过期时间
- * @param {*} suspenseConfig 
- * @param {*} callback 回调
- */
-function scheduleRootUpdate(
-  current: Fiber,
-  element: ReactNodeList,
-  expirationTime: ExpirationTime,
-  suspenseConfig: null | SuspenseConfig,
-  callback: ?Function,
-) {
-  if (__DEV__) {
-    if (
-      ReactCurrentFiberPhase === 'render' &&
-      ReactCurrentFiberCurrent !== null &&
-      !didWarnAboutNestedUpdates
-    ) {
-      didWarnAboutNestedUpdates = true;
-      warningWithoutStack(
-        false,
-        'Render methods should be a pure function of props and state; ' +
-          'triggering nested component updates from render is not allowed. ' +
-          'If necessary, trigger nested updates in componentDidUpdate.\n\n' +
-          'Check the render method of %s.',
-        getComponentName(ReactCurrentFiberCurrent.type) || 'Unknown',
-      );
-    }
-  }
-
-  // 创建Update对象
-  const update = createUpdate(expirationTime, suspenseConfig);
-
-  // Caution: React DevTools currently depends on this property
-  // being called "element".
-  
-  // 将子节点放到update对象payload的element字段
-  update.payload = {element};
-
-  // callback 类型校验
-  callback = callback === undefined ? null : callback;
-  // 存在更新后的回调
-  if (callback !== null) {
-    warningWithoutStack(
-      typeof callback === 'function',
-      'render(...): Expected the last optional `callback` argument to be a ' +
-        'function. Instead received: %s.',
-      callback,
-    );
-    // 将更新后的回调放到update对象的callback字段
-    update.callback = callback;
-  }
-
-  if (revertPassiveEffectsChange) {
-    flushPassiveEffects();
-  }
-  // 将新创建的update放到队列中
-  enqueueUpdate(current, update);
-  // 开始调度工作
-  scheduleWork(current, expirationTime);
-
-  return expirationTime;
-}
-
-/**
- * 在过期时间更新容器
- * @param {*} element 子节点
- * @param {*} container 父级FiberNode
- * @param {*} parentComponent 父级组件
- * @param {*} expirationTime 过期时间
- * @param {*} suspenseConfig 
- * @param {*} callback 回调
- */
-export function updateContainerAtExpirationTime(
-  element: ReactNodeList,
-  container: OpaqueRoot,
-  parentComponent: ?React$Component<any, any>,
-  expirationTime: ExpirationTime,
-  suspenseConfig: null | SuspenseConfig,
-  callback: ?Function,
-) {
-  // TODO: If this is a nested container, this won't be the root.
-  const current = container.current; // 父级FiberRootNode对应的FiberNode
-
-  if (__DEV__) {
-    if (ReactFiberInstrumentation.debugTool) {
-      if (current.alternate === null) {
-        ReactFiberInstrumentation.debugTool.onMountContainer(container);
-      } else if (element === null) {
-        ReactFiberInstrumentation.debugTool.onUnmountContainer(container);
-      } else {
-        ReactFiberInstrumentation.debugTool.onUpdateContainer(container);
-      }
-    }
-  }
-
-  const context = getContextForSubtree(parentComponent);
-  if (container.context === null) {
-    container.context = context;
-  } else {
-    container.pendingContext = context;
-  }
-
-  return scheduleRootUpdate(
-    current, // 根结点的FiberNode
-    element, // 子节点
-    expirationTime, // 过期时间
-    suspenseConfig,
-    callback, // 回调
-  );
-}
-
-function findHostInstance(component: Object): PublicInstance | null {
-  const fiber = getInstance(component);
-  if (fiber === undefined) {
-    if (typeof component.render === 'function') {
-      invariant(false, 'Unable to find node on an unmounted component.');
-    } else {
-      invariant(
-        false,
-        'Argument appears to not be a ReactComponent. Keys: %s',
-        Object.keys(component),
-      );
-    }
-  }
-  const hostFiber = findCurrentHostFiber(fiber);
-  if (hostFiber === null) {
-    return null;
-  }
-  return hostFiber.stateNode;
-}
-
-function findHostInstanceWithWarning(
-  component: Object,
-  methodName: string,
-): PublicInstance | null {
-  if (__DEV__) {
-    const fiber = getInstance(component);
-    if (fiber === undefined) {
-      if (typeof component.render === 'function') {
-        invariant(false, 'Unable to find node on an unmounted component.');
-      } else {
-        invariant(
-          false,
-          'Argument appears to not be a ReactComponent. Keys: %s',
-          Object.keys(component),
-        );
-      }
-    }
-    const hostFiber = findCurrentHostFiber(fiber);
-    if (hostFiber === null) {
-      return null;
-    }
-    if (hostFiber.mode & StrictMode) {
-      const componentName = getComponentName(fiber.type) || 'Component';
-      if (!didWarnAboutFindNodeInStrictMode[componentName]) {
-        didWarnAboutFindNodeInStrictMode[componentName] = true;
-        if (fiber.mode & StrictMode) {
-          warningWithoutStack(
-            false,
-            '%s is deprecated in StrictMode. ' +
-              '%s was passed an instance of %s which is inside StrictMode. ' +
-              'Instead, add a ref directly to the element you want to reference.' +
-              '\n%s' +
-              '\n\nLearn more about using refs safely here:' +
-              '\nhttps://fb.me/react-strict-mode-find-node',
-            methodName,
-            methodName,
-            componentName,
-            getStackByFiberInDevAndProd(hostFiber),
-          );
-        } else {
-          warningWithoutStack(
-            false,
-            '%s is deprecated in StrictMode. ' +
-              '%s was passed an instance of %s which renders StrictMode children. ' +
-              'Instead, add a ref directly to the element you want to reference.' +
-              '\n%s' +
-              '\n\nLearn more about using refs safely here:' +
-              '\nhttps://fb.me/react-strict-mode-find-node',
-            methodName,
-            methodName,
-            componentName,
-            getStackByFiberInDevAndProd(hostFiber),
-          );
-        }
-      }
-    }
-    return hostFiber.stateNode;
-  }
-  return findHostInstance(component);
-}
-
-/**
- * 创建FiberRoot容器
- * @param {*} containerInfo Dom容器
- * @param {*} tag Dom标签
- * @param {*} hydrate 
- */
-export function createContainer(
-  containerInfo: Container,
-  tag: RootTag,
-  hydrate: boolean,
-): OpaqueRoot {
-  return createFiberRoot(containerInfo, tag, hydrate);
-}
-
-/**
- * 更新容器
- * @param {*} element 子节点
- * @param {*} container 父级FiberRootNode
- * @param {*} parentComponent 父级组件
- * @param {*} callback 回调
- */
-export function updateContainer(
-  element: ReactNodeList,
-  container: OpaqueRoot,
-  parentComponent: ?React$Component<any, any>,
-  callback: ?Function,
-): ExpirationTime {
-  const current = container.current; // 父级的FiberNode
-  const currentTime = requestCurrentTime(); // 获取当前时间
-  if (__DEV__) {
-    // $FlowExpectedError - jest isn't a global, and isn't recognized outside of tests
-    if ('undefined' !== typeof jest) {
-      warnIfNotScopedWithMatchingAct(current);
-    }
-  }
-  // 获取当前suspense配置
-  const suspenseConfig = requestCurrentSuspenseConfig();
-  // 计算FiberNode的过期时间
-  const expirationTime = computeExpirationForFiber(
-    currentTime,
-    current,
-    suspenseConfig,
-  );
-  return updateContainerAtExpirationTime(
-    element, // 子节点
-    container, // 父级FiberRootNode
-    parentComponent, // 父级组件
-    expirationTime, // 过期时间
-    suspenseConfig,
-    callback, // 回调
-  );
-}
-
-export {
-  flushRoot,
-  computeUniqueAsyncExpiration,
-  batchedEventUpdates,
-  batchedUpdates,
-  unbatchedUpdates,
-  deferredUpdates,
-  syncUpdates,
-  discreteUpdates,
-  flushDiscreteUpdates,
-  flushControlled,
-  flushSync,
-  flushPassiveEffects,
-  ReactActingRendererSigil,
-};
-
-export function getPublicRootInstance(
-  container: OpaqueRoot,
-): React$Component<any, any> | PublicInstance | null {
-  const containerFiber = container.current;
-  if (!containerFiber.child) {
-    return null;
-  }
-  switch (containerFiber.child.tag) {
-    case HostComponent:
-      return getPublicInstance(containerFiber.child.stateNode);
-    default:
-      return containerFiber.child.stateNode;
-  }
-}
-
-export {findHostInstance};
-
-export {findHostInstanceWithWarning};
-
-export function findHostInstanceWithNoPortals(
-  fiber: Fiber,
-): PublicInstance | null {
-  const hostFiber = findCurrentHostFiberWithNoPortals(fiber);
-  if (hostFiber === null) {
-    return null;
-  }
-  return hostFiber.stateNode;
-}
-
-let shouldSuspendImpl = fiber => false;
-
-export function shouldSuspend(fiber: Fiber): boolean {
-  return shouldSuspendImpl(fiber);
-}
-
-let overrideHookState = null;
-let overrideProps = null;
-let scheduleUpdate = null;
-let setSuspenseHandler = null;
-
-if (__DEV__) {
-  const copyWithSetImpl = (
-    obj: Object | Array<any>,
-    path: Array<string | number>,
-    idx: number,
-    value: any,
-  ) => {
-    if (idx >= path.length) {
-      return value;
-    }
-    const key = path[idx];
-    const updated = Array.isArray(obj) ? obj.slice() : {...obj};
-    // $FlowFixMe number or string is fine here
-    updated[key] = copyWithSetImpl(obj[key], path, idx + 1, value);
-    return updated;
-  };
-
-  const copyWithSet = (
-    obj: Object | Array<any>,
-    path: Array<string | number>,
-    value: any,
-  ): Object | Array<any> => {
-    return copyWithSetImpl(obj, path, 0, value);
-  };
-
-  // Support DevTools editable values for useState and useReducer.
-  overrideHookState = (
-    fiber: Fiber,
-    id: number,
-    path: Array<string | number>,
-    value: any,
-  ) => {
-    // For now, the "id" of stateful hooks is just the stateful hook index.
-    // This may change in the future with e.g. nested hooks.
-    let currentHook = fiber.memoizedState;
-    while (currentHook !== null && id > 0) {
-      currentHook = currentHook.next;
-      id--;
-    }
-    if (currentHook !== null) {
-      if (revertPassiveEffectsChange) {
-        flushPassiveEffects();
-      }
-
-      const newState = copyWithSet(currentHook.memoizedState, path, value);
-      currentHook.memoizedState = newState;
-      currentHook.baseState = newState;
-
-      // We aren't actually adding an update to the queue,
-      // because there is no update we can add for useReducer hooks that won't trigger an error.
-      // (There's no appropriate action type for DevTools overrides.)
-      // As a result though, React will see the scheduled update as a noop and bailout.
-      // Shallow cloning props works as a workaround for now to bypass the bailout check.
-      fiber.memoizedProps = {...fiber.memoizedProps};
-
-      scheduleWork(fiber, Sync);
-    }
-  };
-
-  // Support DevTools props for function components, forwardRef, memo, host components, etc.
-  overrideProps = (fiber: Fiber, path: Array<string | number>, value: any) => {
-    if (revertPassiveEffectsChange) {
-      flushPassiveEffects();
-    }
-    fiber.pendingProps = copyWithSet(fiber.memoizedProps, path, value);
-    if (fiber.alternate) {
-      fiber.alternate.pendingProps = fiber.pendingProps;
-    }
-    scheduleWork(fiber, Sync);
-  };
-
-  scheduleUpdate = (fiber: Fiber) => {
-    if (revertPassiveEffectsChange) {
-      flushPassiveEffects();
-    }
-    scheduleWork(fiber, Sync);
-  };
-
-  setSuspenseHandler = (newShouldSuspendImpl: Fiber => boolean) => {
-    shouldSuspendImpl = newShouldSuspendImpl;
-  };
-}
-
-export function injectIntoDevTools(devToolsConfig: DevToolsConfig): boolean {
-  const {findFiberByHostInstance} = devToolsConfig;
-  const {ReactCurrentDispatcher} = ReactSharedInternals;
-
-  return injectInternals({
-    ...devToolsConfig,
-    overrideHookState,
-    overrideProps,
-    setSuspenseHandler,
-    scheduleUpdate,
-    currentDispatcherRef: ReactCurrentDispatcher,
-    findHostInstanceByFiber(fiber: Fiber): Instance | TextInstance | null {
-      const hostFiber = findCurrentHostFiber(fiber);
-      if (hostFiber === null) {
-        return null;
-      }
-      return hostFiber.stateNode;
-    },
-    findFiberByHostInstance(instance: Instance | TextInstance): Fiber | null {
-      if (!findFiberByHostInstance) {
-        // Might not be implemented by the renderer.
-        return null;
-      }
-      return findFiberByHostInstance(instance);
-    },
-    // React Refresh
-    findHostInstancesForRefresh: __DEV__ ? findHostInstancesForRefresh : null,
-    scheduleRefresh: __DEV__ ? scheduleRefresh : null,
-    setRefreshHandler: __DEV__ ? setRefreshHandler : null,
-  });
-}
+export const registerMutableSourceForHydration = enableNewReconciler
+  ? registerMutableSourceForHydration_new
+  : registerMutableSourceForHydration_old;

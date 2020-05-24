@@ -7,7 +7,7 @@
  * @flow
  */
 
-import React from 'react';
+import * as React from 'react';
 
 const ReactInternals = React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
 
@@ -32,7 +32,7 @@ const {
 
   // this doesn't actually exist on the scheduler, but it *does*
   // on scheduler/unstable_mock, which we'll need inside act().
-  unstable_flushWithoutYielding,
+  unstable_flushAllWithoutAsserting,
 } = ReactInternals.Scheduler;
 
 export {
@@ -53,5 +53,5 @@ export {
   unstable_LowPriority,
   unstable_IdlePriority,
   unstable_forceFrameRate,
-  unstable_flushWithoutYielding,
+  unstable_flushAllWithoutAsserting,
 };

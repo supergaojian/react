@@ -11,9 +11,10 @@ const {execRead} = require('../utils');
 
 const run = async ({cwd, packages, tags}) => {
   // All packages are built from a single source revision,
-  // so it is safe to read the commit number from any one of them.
-  const {commit, environment} = readJsonSync(
-    `${cwd}/build/node_modules/react/build-info.json`
+  // so it is safe to read build info from any one of them.
+  const arbitraryPackageName = packages[0];
+  const {commit} = readJsonSync(
+    join(cwd, 'build', 'node_modules', arbitraryPackageName, 'build-info.json')
   );
 
   // Tags are named after the react version.
@@ -21,15 +22,11 @@ const run = async ({cwd, packages, tags}) => {
     `${cwd}/build/node_modules/react/package.json`
   );
 
-  const branch = await execRead('git branch | grep \\* | cut -d " " -f2', {
-    cwd,
-  });
-
   clear();
 
-  if (tags.length === 1 && tags[0] === 'canary') {
+  if (tags.length === 1 && tags[0] === 'next') {
     console.log(
-      theme`{header A canary release} {version ${version}} {header has been published!}`
+      theme`{header A "next" release} {version ${version}} {header has been published!}`
     );
   } else {
     const nodeModulesPath = join(cwd, 'build/node_modules');
@@ -50,20 +47,12 @@ const run = async ({cwd, packages, tags}) => {
         const packageName = packages[i];
         console.log(theme.path`• packages/%s/package.json`, packageName);
       }
-      console.log(theme.path`• packages/shared/ReactVersion.js`);
-
-      console.log();
-      if (environment === 'ci') {
-        console.log('Auto-generated error codes have been updated as well:');
-        console.log(theme.path`• scripts/error-codes/codes.json`);
-      } else {
-        console.log(
-          theme`{caution The release that was just published was created locally.} ` +
-            theme`Because of this, you will need to update the generated ` +
-            theme`{path scripts/error-codes/codes.json} file manually:`
-        );
-        console.log(theme`  {command git checkout} {version ${commit}}`);
-        console.log(theme`  {command yarn build -- --extract-errors}`);
+      const status = await execRead(
+        'git diff packages/shared/ReactVersion.js',
+        {cwd}
+      );
+      if (status) {
+        console.log(theme.path`• packages/shared/ReactVersion.js`);
       }
     }
 
@@ -71,16 +60,6 @@ const run = async ({cwd, packages, tags}) => {
     console.log(
       theme`{header Don't forget to also update and commit the }{path CHANGELOG}`
     );
-
-    if (branch !== 'master') {
-      console.log();
-      console.log(
-        theme`{header Don't forget to cherry-pick any updated error codes into the} {path master} {header branch}.`
-      );
-      console.log(
-        theme`Else they will not be properly decoded on {link reactjs.org}.`
-      );
-    }
 
     // Prompt the release engineer to tag the commit and update the CHANGELOG.
     // (The script could automatically do this, but this seems safer.)
@@ -120,9 +99,7 @@ const run = async ({cwd, packages, tags}) => {
       }
     }
 
-    // Updating reactjs.org accomplishes two things:
-    // (1) It ensures our Gatsby error codes plugin runs with the latest error codes.
-    // (2) It keeps the React version shown in the header up to date.
+    // Update reactjs.org so the React version shown in the header is up to date.
     console.log();
     console.log(
       theme.header`Once you've pushed changes, update the docs site.`

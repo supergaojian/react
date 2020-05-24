@@ -7,11 +7,7 @@
  * @flow
  */
 
-import type {
-  ReactNativeBaseComponentViewConfig,
-  ReactNativeEventResponder,
-} from './ReactNativeTypes';
-import type {ReactEventComponentInstance} from 'shared/ReactTypes';
+import type {TouchedViewDataAtPoint} from './ReactNativeTypes';
 
 import invariant from 'shared/invariant';
 
@@ -35,11 +31,7 @@ const {get: getViewConfigForType} = ReactNativeViewConfigRegistry;
 export type Type = string;
 export type Props = Object;
 export type Container = number;
-export type Instance = {
-  _children: Array<Instance | number>,
-  _nativeTag: number,
-  viewConfig: ReactNativeBaseComponentViewConfig<>,
-};
+export type Instance = ReactNativeFiberHostComponent;
 export type TextInstance = number;
 export type HydratableInstance = Instance | TextInstance;
 export type PublicInstance = Instance;
@@ -51,7 +43,18 @@ export type ChildSet = void; // Unused
 
 export type TimeoutHandle = TimeoutID;
 export type NoTimeout = -1;
-export type EventResponder = ReactNativeEventResponder;
+export type OpaqueIDType = void;
+
+export type RendererInspectionConfig = $ReadOnly<{|
+  // Deprecated. Replaced with getInspectorDataForViewAtPoint.
+  getInspectorDataForViewTag?: (tag: number) => Object,
+  getInspectorDataForViewAtPoint?: (
+    inspectedView: Object,
+    locationX: number,
+    locationY: number,
+    callback: (viewData: TouchedViewDataAtPoint) => mixed,
+  ) => void,
+|}>;
 
 const UPDATE_SIGNAL = {};
 if (__DEV__) {
@@ -82,8 +85,10 @@ function recursivelyUncacheFiberNode(node: Instance | TextInstance) {
   }
 }
 
-export * from 'shared/HostConfigWithNoPersistence';
-export * from 'shared/HostConfigWithNoHydration';
+export * from 'react-reconciler/src/ReactFiberHostConfigWithNoPersistence';
+export * from 'react-reconciler/src/ReactFiberHostConfigWithNoHydration';
+export * from 'react-reconciler/src/ReactFiberHostConfigWithNoScopes';
+export * from 'react-reconciler/src/ReactFiberHostConfigWithNoTestSelectors';
 
 export function appendInitialChild(
   parentInstance: Instance,
@@ -119,7 +124,11 @@ export function createInstance(
     updatePayload, // props
   );
 
-  const component = new ReactNativeFiberHostComponent(tag, viewConfig);
+  const component = new ReactNativeFiberHostComponent(
+    tag,
+    viewConfig,
+    internalInstanceHandle,
+  );
 
   precacheFiberNode(internalInstanceHandle, tag);
   updateFiberProps(tag, props);
@@ -168,11 +177,10 @@ export function finalizeInitialChildren(
 
   // Map from child objects to native tags.
   // Either way we need to pass a copy of the Array to prevent it from being frozen.
-  const nativeTags = parentInstance._children.map(
-    child =>
-      typeof child === 'number'
-        ? child // Leaf node (eg text)
-        : child._nativeTag,
+  const nativeTags = parentInstance._children.map(child =>
+    typeof child === 'number'
+      ? child // Leaf node (eg text)
+      : child._nativeTag,
   );
 
   UIManager.setChildren(
@@ -209,27 +217,13 @@ export function getChildHostContext(
   }
 }
 
-export function getChildHostContextForEventComponent(
-  parentHostContext: HostContext,
-) {
-  // TODO: add getChildHostContextForEventComponent implementation
-  return parentHostContext;
-}
-
-export function getChildHostContextForEventTarget(
-  parentHostContext: HostContext,
-  type: Symbol | number,
-) {
-  // TODO: add getChildHostContextForEventTarget implementation
-  return parentHostContext;
-}
-
 export function getPublicInstance(instance: Instance): * {
   return instance;
 }
 
-export function prepareForCommit(containerInfo: Container): void {
+export function prepareForCommit(containerInfo: Container): null | Object {
   // Noop
+  return null;
 }
 
 export function prepareUpdate(
@@ -248,6 +242,7 @@ export function resetAfterCommit(containerInfo: Container): void {
 }
 
 export const isPrimaryRenderer = true;
+export const warnsIfNotActing = true;
 
 export const scheduleTimeout = setTimeout;
 export const cancelTimeout = clearTimeout;
@@ -489,6 +484,11 @@ export function unhideInstance(instance: Instance, props: Props): void {
   );
 }
 
+export function clearContainer(container: Container): void {
+  // TODO Implement this for React Native
+  // UIManager does not expose a "remove all" type method.
+}
+
 export function unhideTextInstance(
   textInstance: TextInstance,
   text: string,
@@ -496,45 +496,76 @@ export function unhideTextInstance(
   throw new Error('Not yet implemented.');
 }
 
-export function mountEventComponent(
-  eventComponentInstance: ReactEventComponentInstance<any, any, any>,
-) {
-  throw new Error('Not yet implemented.');
-}
-
-export function updateEventComponent(
-  eventComponentInstance: ReactEventComponentInstance<any, any, any>,
-) {
-  throw new Error('Not yet implemented.');
-}
-
-export function unmountEventComponent(
-  eventComponentInstance: ReactEventComponentInstance<any, any, any>,
-): void {
-  throw new Error('Not yet implemented.');
-}
-
-export function getEventTargetChildElement(
-  type: Symbol | number,
-  props: Props,
-): null {
-  throw new Error('Not yet implemented.');
-}
-
-export function handleEventTarget(
-  type: Symbol | number,
-  props: Props,
-  rootContainerInstance: Container,
-  internalInstanceHandle: Object,
-): boolean {
-  throw new Error('Not yet implemented.');
-}
-
-export function commitEventTarget(
-  type: Symbol | number,
-  props: Props,
+export function DEPRECATED_mountResponderInstance(
+  responder: any,
+  responderInstance: any,
+  props: Object,
+  state: Object,
   instance: Instance,
-  parentInstance: Instance,
+) {
+  throw new Error('Not yet implemented.');
+}
+
+export function DEPRECATED_unmountResponderInstance(
+  responderInstance: any,
 ): void {
   throw new Error('Not yet implemented.');
+}
+
+export function getFundamentalComponentInstance(fundamentalInstance: any) {
+  throw new Error('Not yet implemented.');
+}
+
+export function mountFundamentalComponent(fundamentalInstance: any) {
+  throw new Error('Not yet implemented.');
+}
+
+export function shouldUpdateFundamentalComponent(fundamentalInstance: any) {
+  throw new Error('Not yet implemented.');
+}
+
+export function updateFundamentalComponent(fundamentalInstance: any) {
+  throw new Error('Not yet implemented.');
+}
+
+export function unmountFundamentalComponent(fundamentalInstance: any) {
+  throw new Error('Not yet implemented.');
+}
+
+export function getInstanceFromNode(node: any) {
+  throw new Error('Not yet implemented.');
+}
+
+export function removeInstanceEventHandles(instance: any) {
+  // noop
+}
+
+export function isOpaqueHydratingObject(value: mixed): boolean {
+  throw new Error('Not yet implemented');
+}
+
+export function makeOpaqueHydratingObject(
+  attemptToReadValue: () => void,
+): OpaqueIDType {
+  throw new Error('Not yet implemented.');
+}
+
+export function makeClientId(): OpaqueIDType {
+  throw new Error('Not yet implemented');
+}
+
+export function makeClientIdInDEV(warnOnAccessInDEV: () => void): OpaqueIDType {
+  throw new Error('Not yet implemented');
+}
+
+export function beforeActiveInstanceBlur() {
+  // noop
+}
+
+export function afterActiveInstanceBlur() {
+  // noop
+}
+
+export function preparePortalMount(portalInstance: Instance): void {
+  // noop
 }

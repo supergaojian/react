@@ -21,7 +21,7 @@ describe('ReactSuspenseFuzz', () => {
   beforeEach(() => {
     jest.resetModules();
     ReactFeatureFlags = require('shared/ReactFeatureFlags');
-    ReactFeatureFlags.debugRenderPhaseSideEffectsForStrictMode = false;
+
     ReactFeatureFlags.replayFailedUnitOfWorkWithInvokeGuardedCallback = false;
     React = require('react');
     Suspense = React.Suspense;
@@ -46,32 +46,29 @@ describe('ReactSuspenseFuzz', () => {
     function Container({children, updates}) {
       const [step, setStep] = useState(0);
 
-      useLayoutEffect(
-        () => {
-          if (updates !== undefined) {
-            const cleanUps = new Set();
-            updates.forEach(({remountAfter}, i) => {
-              const task = {
-                label: `Remount childen after ${remountAfter}ms`,
-              };
-              const timeoutID = setTimeout(() => {
-                pendingTasks.delete(task);
-                Scheduler.yieldValue(task.label);
-                setStep(i + 1);
-              }, remountAfter);
-              pendingTasks.add(task);
-              cleanUps.add(() => {
-                pendingTasks.delete(task);
-                clearTimeout(timeoutID);
-              });
-            });
-            return () => {
-              cleanUps.forEach(cleanUp => cleanUp());
+      useLayoutEffect(() => {
+        if (updates !== undefined) {
+          const cleanUps = new Set();
+          updates.forEach(({remountAfter}, i) => {
+            const task = {
+              label: `Remount children after ${remountAfter}ms`,
             };
-          }
-        },
-        [updates],
-      );
+            const timeoutID = setTimeout(() => {
+              pendingTasks.delete(task);
+              Scheduler.unstable_yieldValue(task.label);
+              setStep(i + 1);
+            }, remountAfter);
+            pendingTasks.add(task);
+            cleanUps.add(() => {
+              pendingTasks.delete(task);
+              clearTimeout(timeoutID);
+            });
+          });
+          return () => {
+            cleanUps.forEach(cleanUp => cleanUp());
+          };
+        }
+      }, [updates]);
 
       return <React.Fragment key={step}>{children}</React.Fragment>;
     }
@@ -79,32 +76,29 @@ describe('ReactSuspenseFuzz', () => {
     function Text({text, initialDelay = 0, updates}) {
       const [[step, delay], setStep] = useState([0, initialDelay]);
 
-      useLayoutEffect(
-        () => {
-          if (updates !== undefined) {
-            const cleanUps = new Set();
-            updates.forEach(({beginAfter, suspendFor}, i) => {
-              const task = {
-                label: `Update ${beginAfter}ms after mount and suspend for ${suspendFor}ms [${text}]`,
-              };
-              const timeoutID = setTimeout(() => {
-                pendingTasks.delete(task);
-                Scheduler.yieldValue(task.label);
-                setStep([i + 1, suspendFor]);
-              }, beginAfter);
-              pendingTasks.add(task);
-              cleanUps.add(() => {
-                pendingTasks.delete(task);
-                clearTimeout(timeoutID);
-              });
-            });
-            return () => {
-              cleanUps.forEach(cleanUp => cleanUp());
+      useLayoutEffect(() => {
+        if (updates !== undefined) {
+          const cleanUps = new Set();
+          updates.forEach(({beginAfter, suspendFor}, i) => {
+            const task = {
+              label: `Update ${beginAfter}ms after mount and suspend for ${suspendFor}ms [${text}]`,
             };
-          }
-        },
-        [updates],
-      );
+            const timeoutID = setTimeout(() => {
+              pendingTasks.delete(task);
+              Scheduler.unstable_yieldValue(task.label);
+              setStep([i + 1, suspendFor]);
+            }, beginAfter);
+            pendingTasks.add(task);
+            cleanUps.add(() => {
+              pendingTasks.delete(task);
+              clearTimeout(timeoutID);
+            });
+          });
+          return () => {
+            cleanUps.forEach(cleanUp => cleanUp());
+          };
+        }
+      }, [updates]);
 
       const fullText = `${text}:${step}`;
 
@@ -121,36 +115,36 @@ describe('ReactSuspenseFuzz', () => {
               setTimeout(() => {
                 cache.set(fullText, fullText);
                 pendingTasks.delete(task);
-                Scheduler.yieldValue(task.label);
+                Scheduler.unstable_yieldValue(task.label);
                 resolve();
               }, delay);
             },
           };
           cache.set(fullText, thenable);
-          Scheduler.yieldValue(`Suspended! [${fullText}]`);
+          Scheduler.unstable_yieldValue(`Suspended! [${fullText}]`);
           throw thenable;
         } else if (typeof resolvedText.then === 'function') {
           const thenable = resolvedText;
-          Scheduler.yieldValue(`Suspended! [${fullText}]`);
+          Scheduler.unstable_yieldValue(`Suspended! [${fullText}]`);
           throw thenable;
         }
       } else {
         resolvedText = fullText;
       }
 
-      Scheduler.yieldValue(resolvedText);
+      Scheduler.unstable_yieldValue(resolvedText);
       return resolvedText;
     }
 
     function resolveAllTasks() {
-      Scheduler.unstable_flushWithoutYielding();
+      Scheduler.unstable_flushAllWithoutAsserting();
       let elapsedTime = 0;
       while (pendingTasks && pendingTasks.size > 0) {
         if ((elapsedTime += 1000) > 1000000) {
           throw new Error('Something did not resolve properly.');
         }
         ReactNoop.act(() => jest.advanceTimersByTime(1000));
-        Scheduler.unstable_flushWithoutYielding();
+        Scheduler.unstable_flushAllWithoutAsserting();
       }
     }
 
@@ -177,10 +171,10 @@ describe('ReactSuspenseFuzz', () => {
       ReactNoop.renderLegacySyncRoot(null);
 
       resetCache();
-      const batchedSyncRoot = ReactNoop.createSyncRoot();
-      batchedSyncRoot.render(children);
+      const batchedBlockingRoot = ReactNoop.createBlockingRoot();
+      batchedBlockingRoot.render(children);
       resolveAllTasks();
-      const batchedSyncOutput = batchedSyncRoot.getChildrenAsJSX();
+      const batchedSyncOutput = batchedBlockingRoot.getChildrenAsJSX();
       expect(batchedSyncOutput).toEqual(expectedOutput);
 
       resetCache();
@@ -232,7 +226,7 @@ describe('ReactSuspenseFuzz', () => {
               {value: 2, weight: 1},
             ]);
 
-            let updates = [];
+            const updates = [];
             for (let i = 0; i < numberOfUpdates; i++) {
               updates.push({
                 beginAfter: rand.intBetween(0, 10000),
@@ -255,7 +249,7 @@ describe('ReactSuspenseFuzz', () => {
               {value: 2, weight: 1},
             ]);
 
-            let updates = [];
+            const updates = [];
             for (let i = 0; i < numberOfUpdates; i++) {
               updates.push({
                 remountAfter: rand.intBetween(0, 10000),
@@ -354,7 +348,7 @@ Random seed is ${SEED}
     it('1', () => {
       const {Text, testResolvedOutput} = createFuzzer();
       testResolvedOutput(
-        <React.Fragment>
+        <>
           <Text
             initialDelay={20}
             text="A"
@@ -368,14 +362,14 @@ Random seed is ${SEED}
             />
             <Text text="C" />
           </Suspense>
-        </React.Fragment>,
+        </>,
       );
     });
 
     it('2', () => {
       const {Text, Container, testResolvedOutput} = createFuzzer();
       testResolvedOutput(
-        <React.Fragment>
+        <>
           <Suspense fallback="Loading...">
             <Text initialDelay={7200} text="A" />
           </Suspense>
@@ -386,14 +380,14 @@ Random seed is ${SEED}
               <Text initialDelay={9000} text="D" />
             </Container>
           </Suspense>
-        </React.Fragment>,
+        </>,
       );
     });
 
     it('3', () => {
       const {Text, Container, testResolvedOutput} = createFuzzer();
       testResolvedOutput(
-        <React.Fragment>
+        <>
           <Suspense fallback="Loading...">
             <Text
               initialDelay={3183}
@@ -420,7 +414,7 @@ Random seed is ${SEED}
             />
             <Text initialDelay={6732} text="D" />
           </Container>
-        </React.Fragment>,
+        </>,
       );
     });
   });
