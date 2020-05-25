@@ -110,9 +110,9 @@ let debugCounter = 1;
 
 /**
  * FiberNode原型
- * @param {*} tag 
- * @param {*} pendingProps 
- * @param {*} key 
+ * @param {*} tag 标签
+ * @param {*} pendingProps 接收props
+ * @param {*} key react key
  * @param {*} mode 
  */
 function FiberNode(
@@ -122,8 +122,14 @@ function FiberNode(
   mode: TypeOfMode,
 ) {
   // Instance
-  this.tag = tag; // 容器标签
-  this.key = key; // react-key
+  /**
+   * 容器标签
+   */
+  this.tag = tag;
+  /**
+   * react-key
+   */
+  this.key = key;
   this.elementType = null;
   this.type = null;
   this.stateNode = null;
@@ -136,7 +142,10 @@ function FiberNode(
 
   this.ref = null;
 
-  this.pendingProps = pendingProps; // 接收的props
+  /**
+   * 接收的props
+   */
+  this.pendingProps = pendingProps;
   this.memoizedProps = null;
   this.updateQueue = null;
   this.memoizedState = null;
@@ -447,6 +456,10 @@ export function resetWorkInProgress(
   return workInProgress;
 }
 
+/**
+ * 创建一个根节点对应的fiber node
+ * @param {*} tag 标签
+ */
 export function createHostRootFiber(tag: RootTag): Fiber {
   let mode;
   if (tag === ConcurrentRoot) {

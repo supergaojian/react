@@ -63,6 +63,12 @@ function ReactDOMRoot(container: Container, options: void | RootOptions) {
   this._internalRoot = createRootImpl(container, ConcurrentRoot, options);
 }
 
+/**
+ * 创建react 根节点
+ * @param {*} container dom容器
+ * @param {*} tag 标签
+ * @param {*} options SSR相关配置
+ */
 function ReactDOMBlockingRoot(
   container: Container,
   tag: RootTag,
@@ -117,6 +123,12 @@ ReactDOMRoot.prototype.unmount = ReactDOMBlockingRoot.prototype.unmount = functi
   });
 };
 
+/**
+ * 创建react根节点实例
+ * @param {*} container dom容器
+ * @param {*} tag 节点标签
+ * @param {*} options 创建配置项（SSR相关）
+ */
 function createRootImpl(
   container: Container,
   tag: RootTag,
@@ -131,7 +143,9 @@ function createRootImpl(
       options.hydrationOptions != null &&
       options.hydrationOptions.mutableSources) ||
     null;
+  // 创建Fiber Root以及对应的FiberNode
   const root = createContainer(container, tag, hydrate, hydrationCallbacks);
+  // 将fiber root对应的fiber node的指定字段指向dom容器
   markContainerAsRoot(root.current, container);
   const containerNodeType = container.nodeType;
 
@@ -185,6 +199,11 @@ export function createBlockingRoot(
   return new ReactDOMBlockingRoot(container, BlockingRoot, options);
 }
 
+/**
+ * 创建根节点
+ * @param {*}} container dom容器
+ * @param {*} options 配置项（SSR相关）
+ */
 export function createLegacyRoot(
   container: Container,
   options?: RootOptions,

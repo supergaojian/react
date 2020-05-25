@@ -24,9 +24,18 @@ import {initializeUpdateQueue} from './ReactUpdateQueue.old';
 import {clearPendingUpdates as clearPendingMutableSourceUpdates} from './ReactMutableSource.old';
 import {LegacyRoot, BlockingRoot, ConcurrentRoot} from './ReactRootTags';
 
+/**
+ * Fiber Root构造函数
+ * @param {*} containerInfo dom容器
+ * @param {*} tag 节点标签
+ * @param {*} hydrate SSR处理标志
+ */
 function FiberRootNode(containerInfo, tag, hydrate) {
   this.tag = tag;
   this.current = null;
+  /**
+   * dom容器引用
+   */
   this.containerInfo = containerInfo;
   this.pendingChildren = null;
   this.pingCache = null;
@@ -35,6 +44,9 @@ function FiberRootNode(containerInfo, tag, hydrate) {
   this.timeoutHandle = noTimeout;
   this.context = null;
   this.pendingContext = null;
+  /**
+   * SSR处理标志
+   */
   this.hydrate = hydrate;
   this.callbackNode = null;
   this.callbackPriority_old = NoPriority;
@@ -75,12 +87,20 @@ function FiberRootNode(containerInfo, tag, hydrate) {
   }
 }
 
+/**
+ * 创建fiber root
+ * @param {*} containerInfo dom容器
+ * @param {*} tag 节点标签
+ * @param {*} hydrate SSR处理标志
+ * @param {*} hydrationCallbacks SSR处理回调
+ */
 export function createFiberRoot(
   containerInfo: any,
   tag: RootTag,
   hydrate: boolean,
   hydrationCallbacks: null | SuspenseHydrationCallbacks,
 ): FiberRoot {
+  // 初始化创建fiber root
   const root: FiberRoot = (new FiberRootNode(containerInfo, tag, hydrate): any);
   if (enableSuspenseCallback) {
     root.hydrationCallbacks = hydrationCallbacks;
@@ -88,10 +108,13 @@ export function createFiberRoot(
 
   // Cyclic construction. This cheats the type system right now because
   // stateNode is any.
+  // 创建fiber root对应的fiber node
   const uninitializedFiber = createHostRootFiber(tag);
+  // fiber root.current 指向 fiber node
   root.current = uninitializedFiber;
+  // fiber node.stateNode 指向 fiber root
   uninitializedFiber.stateNode = root;
-
+  // 初始化fiber node 的更新队列
   initializeUpdateQueue(uninitializedFiber);
 
   return root;

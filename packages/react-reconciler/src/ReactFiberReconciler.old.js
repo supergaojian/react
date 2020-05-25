@@ -232,6 +232,13 @@ function findHostInstanceWithWarning(
   return findHostInstance(component);
 }
 
+/**
+ * 创建fiber root
+ * @param {*} containerInfo dom容器
+ * @param {*} tag 节点标签
+ * @param {*} hydrate SSR处理标志
+ * @param {*} hydrationCallbacks SSR处理回调
+ */
 export function createContainer(
   containerInfo: Container,
   tag: RootTag,

@@ -89,20 +89,33 @@ if (__DEV__) {
   };
 }
 
+/**
+ * 获取react容器dom节点
+ * @param {*} container dom容器
+ */
 function getReactRootElementInContainer(container: any) {
   if (!container) {
+    // 不存在返回null
     return null;
   }
 
   if (container.nodeType === DOCUMENT_NODE) {
+    // 当前节点为document
     return container.documentElement;
   } else {
+    // 非doucemnt则取第一个子节点
     return container.firstChild;
   }
 }
 
+/**
+ * 判断当前是否要针对SSR做处理标志
+ * @param {*} container react根结点dom容器
+ */
 function shouldHydrateDueToLegacyHeuristic(container) {
   const rootElement = getReactRootElementInContainer(container);
+  // 判断条件必须满足
+  // 
   return !!(
     rootElement &&
     rootElement.nodeType === ELEMENT_NODE &&
@@ -110,16 +123,24 @@ function shouldHydrateDueToLegacyHeuristic(container) {
   );
 }
 
+/**
+ * 根据dom容器创建react root节点
+ * @param {*} container react根结点dom容器
+ * @param {*} forceHydrate SSR服务端渲染需要再次处理标志
+ */
 function legacyCreateRootFromDOMContainer(
   container: Container,
   forceHydrate: boolean,
 ): RootType {
+  // SSR服务端渲染需要再次处理标志
   const shouldHydrate =
     forceHydrate || shouldHydrateDueToLegacyHeuristic(container);
   // First clear any existing content.
   if (!shouldHydrate) {
+    // 无需处理SSR
     let warned = false;
     let rootSibling;
+    // 清除容器里全部子节点
     while ((rootSibling = container.lastChild)) {
       if (__DEV__) {
         if (
@@ -172,6 +193,14 @@ function warnOnInvalidCallback(callback: mixed, callerName: string): void {
   }
 }
 
+/**
+ * 将子节点挂载到父级容器下
+ * @param {*} parentComponent 父节点实例
+ * @param {*} children 子节点实例
+ * @param {*} container react根结点dom容器
+ * @param {*} forceHydrate SSR服务端渲染需要再次处理标志
+ * @param {*} callback 挂载后回调
+ */
 function legacyRenderSubtreeIntoContainer(
   parentComponent: ?React$Component<any, any>,
   children: ReactNodeList,
@@ -190,11 +219,13 @@ function legacyRenderSubtreeIntoContainer(
   let fiberRoot;
   if (!root) {
     // Initial mount
+    // 创建react fiber root
+    // 并将fiber root的引用赋值给dom容器_reactRootContainer
     root = container._reactRootContainer = legacyCreateRootFromDOMContainer(
       container,
       forceHydrate,
     );
-    fiberRoot = root._internalRoot;
+    fiberRoot = root._internalRoot; // fiber root
     if (typeof callback === 'function') {
       const originalCallback = callback;
       callback = function() {
@@ -284,6 +315,12 @@ export function hydrate(
   );
 }
 
+/**
+ * 渲染挂载react实例
+ * @param {*} element react根结点实例
+ * @param {*} container react容器
+ * @param {*} callback 挂载后回调
+ */
 export function render(
   element: React$Element<any>,
   container: Container,

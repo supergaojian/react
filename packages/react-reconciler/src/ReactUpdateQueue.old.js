@@ -154,6 +154,10 @@ if (__DEV__) {
   };
 }
 
+/**
+ * 初始化指定fiber node的更新队列
+ * @param {*} fiber fiberNode
+ */
 export function initializeUpdateQueue<State>(fiber: Fiber): void {
   const queue: UpdateQueue<State> = {
     baseState: fiber.memoizedState,
