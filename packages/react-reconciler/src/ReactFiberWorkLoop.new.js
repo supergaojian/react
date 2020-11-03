@@ -221,7 +221,13 @@ const BatchedContext = /*               */ 0b0000001;
 const EventContext = /*                 */ 0b0000010;
 const DiscreteEventContext = /*         */ 0b0000100;
 const LegacyUnbatchedContext = /*       */ 0b0001000;
+/**
+ * 渲染动作
+ */
 const RenderContext = /*                */ 0b0010000;
+/**
+ * 提交动作
+ */
 const CommitContext = /*                */ 0b0100000;
 export const RetryAfterError = /*       */ 0b1000000;
 
@@ -234,6 +240,9 @@ const RootSuspendedWithDelay = 4;
 const RootCompleted = 5;
 
 // Describes where we are in the React execution stack
+/**
+ * 当前执行栈
+ */
 let executionContext: ExecutionContext = NoContext;
 // The root we're working on
 let workInProgressRoot: FiberRoot | null = null;
@@ -330,9 +339,16 @@ export function getWorkInProgressRoot(): FiberRoot | null {
   return workInProgressRoot;
 }
 
+/**
+ * 返回当前事件时间戳
+ */
 export function requestEventTime() {
+  /**
+   * 当前执行栈为 渲染 或 提交 事件
+   */
   if ((executionContext & (RenderContext | CommitContext)) !== NoContext) {
     // We're inside React, so it's fine to read the actual time.
+    // 返回当前时间戳
     return now();
   }
   // We're not inside React, so we may be in the middle of a browser event.
@@ -439,6 +455,12 @@ export function requestUpdateLane(
   return lane;
 }
 
+/**
+ * 调度fibernode上的update
+ * @param {*}} fiber 
+ * @param {*} lane 
+ * @param {*} eventTime 
+ */
 export function scheduleUpdateOnFiber(
   fiber: Fiber,
   lane: Lane,

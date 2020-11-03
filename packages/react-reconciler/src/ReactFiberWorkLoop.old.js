@@ -310,6 +310,9 @@ export function getWorkInProgressRoot(): FiberRoot | null {
   return workInProgressRoot;
 }
 
+/**
+ * 返回当前时间戳
+ */
 export function requestCurrentTimeForUpdate() {
   if ((executionContext & (RenderContext | CommitContext)) !== NoContext) {
     // We're inside React, so it's fine to read the actual time.
@@ -329,12 +332,19 @@ export function getCurrentTime() {
   return msToExpirationTime(now());
 }
 
+/**
+ * 计算FiberNode的过期时间
+ * @param {*} currentTime 
+ * @param {*} fiber 
+ * @param {*} suspenseConfig 
+ */
 export function computeExpirationForFiber(
   currentTime: ExpirationTime,
   fiber: Fiber,
   suspenseConfig: null | SuspenseConfig,
 ): ExpirationTime {
   const mode = fiber.mode;
+
   if ((mode & BlockingMode) === NoMode) {
     return Sync;
   }
@@ -416,6 +426,9 @@ export function priorityLevelToLabel(
   }
 }
 
+/**
+ * 调度fiber node上的update
+ */
 export function scheduleUpdateOnFiber(
   fiber: Fiber,
   expirationTime: ExpirationTime,
@@ -423,7 +436,7 @@ export function scheduleUpdateOnFiber(
   checkForNestedUpdates();
   warnAboutRenderPhaseUpdatesInDEV(fiber);
 
-  const root = markUpdateTimeFromFiberToRoot(fiber, expirationTime);
+  const root = markUpdateTimeFromFiberToRoot(fiber, expirationTime); // 返回fiberRootNode
   if (root === null) {
     warnAboutUpdateOnUnmountedFiberInDEV(fiber);
     return;
@@ -492,6 +505,11 @@ export function scheduleUpdateOnFiber(
 // work without treating it as a typical update that originates from an event;
 // e.g. retrying a Suspense boundary isn't an update, but it does schedule work
 // on a fiber.
+/**
+ * 标记fibernode更新时间
+ * @param {*} fiber 
+ * @param {*} expirationTime 
+ */
 function markUpdateTimeFromFiberToRoot(fiber, expirationTime) {
   // Update the source fiber's expiration time
   if (fiber.expirationTime < expirationTime) {
@@ -514,7 +532,7 @@ function markUpdateTimeFromFiberToRoot(fiber, expirationTime) {
   let node = fiber.return;
   let root = null;
   if (node === null && fiber.tag === HostRoot) {
-    root = fiber.stateNode;
+    root = fiber.stateNode; // 没有父级时取fiber对应的fiberRootNode
   } else {
     while (node !== null) {
       alternate = node.alternate;
@@ -988,6 +1006,10 @@ function finishConcurrentRender(
 
 // This is the entry point for synchronous tasks that don't go
 // through Scheduler
+/**
+ * 从root开始执行
+ * @param {*} root 
+ */
 function performSyncWorkOnRoot(root) {
   invariant(
     (executionContext & (RenderContext | CommitContext)) === NoContext,
@@ -997,7 +1019,6 @@ function performSyncWorkOnRoot(root) {
   flushPassiveEffects();
 
   const lastExpiredTime = root.lastExpiredTime;
-
   let expirationTime;
   if (lastExpiredTime !== NoWork) {
     // There's expired work on this root. Check if we have a partial tree
@@ -1172,6 +1193,11 @@ export function discreteUpdates<A, B, C, D, R>(
   }
 }
 
+/**
+ * 调度更新
+ * @param {*} fn 更新根节点容器回调
+ * @param {*} a 
+ */
 export function unbatchedUpdates<A, R>(fn: (a: A) => R, a: A): R {
   const prevExecutionContext = executionContext;
   executionContext &= ~BatchedContext;
@@ -1229,6 +1255,11 @@ export function flushControlled(fn: () => mixed): void {
   }
 }
 
+/**
+ * 创建新的workInProgress（fiber root node对应的fiber node）
+ * @param {*} root 
+ * @param {*} expirationTime 
+ */
 function prepareFreshStack(root, expirationTime) {
   root.finishedWork = null;
   root.finishedExpirationTime = NoWork;
@@ -1264,7 +1295,8 @@ function prepareFreshStack(root, expirationTime) {
       interruptedWork = interruptedWork.return;
     }
   }
-  workInProgressRoot = root;
+  workInProgressRoot = root; // 将workInProgressRoot指向当前的FiberRootNode
+  // 将fiber root node对应的fiber node拷贝并赋值到workInProgress
   workInProgress = createWorkInProgress(root.current, null);
   renderExpirationTime = expirationTime;
   workInProgressRootExitStatus = RootIncomplete;
@@ -1346,6 +1378,10 @@ function handleError(root, thrownValue): void {
   } while (true);
 }
 
+/**
+ * 返回Hooks相关
+ * @param {*} root 
+ */
 function pushDispatcher(root) {
   const prevDispatcher = ReactCurrentDispatcher.current;
   ReactCurrentDispatcher.current = ContextOnlyDispatcher;
@@ -1478,6 +1514,9 @@ function inferTimeFromExpirationTimeWithSuspenseConfig(
   );
 }
 
+/**
+ * 渲染根节点FiberRootNode
+ */
 function renderRootSync(root, expirationTime) {
   const prevExecutionContext = executionContext;
   executionContext |= RenderContext;
@@ -1612,10 +1651,15 @@ function workLoopConcurrent() {
   }
 }
 
+/**
+ * 
+ * @param {*} unitOfWork 
+ */
 function performUnitOfWork(unitOfWork: Fiber): void {
   // The current, flushed, state of this fiber is the alternate. Ideally
   // nothing should rely on this, but relying on it here means that we don't
   // need an additional field on the work in progress.
+  debugger
   const current = unitOfWork.alternate;
   setCurrentDebugFiberInDEV(unitOfWork);
 

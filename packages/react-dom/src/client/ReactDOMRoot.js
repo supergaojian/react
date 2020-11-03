@@ -148,7 +148,6 @@ function createRootImpl(
   // 将fiber root对应的fiber node的指定字段指向dom容器
   markContainerAsRoot(root.current, container);
   const containerNodeType = container.nodeType;
-
   if (hydrate && tag !== LegacyRoot) {
     const doc =
       containerNodeType === DOCUMENT_NODE ? container : container.ownerDocument;
@@ -211,6 +210,10 @@ export function createLegacyRoot(
   return new ReactDOMBlockingRoot(container, LegacyRoot, options);
 }
 
+/**
+ * 判断容器是否有效
+ * @param {*} node 
+ */
 export function isValidContainer(node: mixed): boolean {
   return !!(
     node &&

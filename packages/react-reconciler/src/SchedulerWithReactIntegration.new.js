@@ -79,6 +79,9 @@ const initialTimeMs: number = Scheduler_now();
 // the behavior of performance.now and keep our times small enough to fit
 // within 32 bits.
 // TODO: Consider lifting this into Scheduler.
+/**
+ * 返回当前时间戳
+ */
 export const now =
   initialTimeMs < 10000 ? Scheduler_now : () => Scheduler_now() - initialTimeMs;
 

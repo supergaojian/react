@@ -229,7 +229,6 @@ export function reconcileChildren(
   nextChildren: any,
   renderExpirationTime: ExpirationTime,
 ) {
-  debugger
   if (current === null) {
     // If this is a fresh new component that hasn't been rendered yet, we
     // won't update its child set by applying minimal side-effects. Instead,
@@ -1002,6 +1001,10 @@ function finishClassComponent(
   return workInProgress.child;
 }
 
+/**
+ * 将context注入到根节点
+ * @param {*} workInProgress 
+ */
 function pushHostRootContext(workInProgress) {
   // 取出fiber node对应的fiber root node
   const root = (workInProgress.stateNode: FiberRoot);
@@ -1019,12 +1022,13 @@ function pushHostRootContext(workInProgress) {
 }
 
 /**
- * 
+ * 更新更节点
  * @param {*} current 当前fiber node
  * @param {*} workInProgress 下一个时期fiber node
  * @param {*} renderExpirationTime 渲染过期时间
  */
 function updateHostRoot(current, workInProgress, renderExpirationTime) {
+    debugger
   pushHostRootContext(workInProgress);
   const updateQueue = workInProgress.updateQueue;
   invariant(

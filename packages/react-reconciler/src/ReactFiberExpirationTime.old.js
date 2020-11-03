@@ -43,7 +43,7 @@ const MAGIC_NUMBER_OFFSET = Batched - 1; // 2的30次方 - 2
 
 // 1 unit of expiration time represents 10ms.
 /**
- * 毫秒转期望时间
+ * 毫秒转过期时间
  * @param {*} ms 时间戳（毫秒）
  */
 export function msToExpirationTime(ms: number): ExpirationTime {

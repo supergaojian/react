@@ -171,6 +171,11 @@ export function initializeUpdateQueue<State>(fiber: Fiber): void {
   fiber.updateQueue = queue;
 }
 
+/**
+ * 将当前fiber的updateQueue拷贝至workInProgress
+ * @param {*} current 
+ * @param {*} workInProgress 
+ */
 export function cloneUpdateQueue<State>(
   current: Fiber,
   workInProgress: Fiber,
@@ -190,6 +195,11 @@ export function cloneUpdateQueue<State>(
   }
 }
 
+/**
+ * 创建update
+ * @param {*} expirationTime 
+ * @param {*} suspenseConfig 
+ */
 export function createUpdate(
   expirationTime: ExpirationTime,
   suspenseConfig: null | SuspenseConfig,
@@ -210,6 +220,11 @@ export function createUpdate(
   return update;
 }
 
+/**
+ * 插入update
+ * @param {*} fiber 
+ * @param {*} update 
+ */
 export function enqueueUpdate<State>(fiber: Fiber, update: Update<State>) {
   const updateQueue = fiber.updateQueue;
   if (updateQueue === null) {
@@ -221,8 +236,10 @@ export function enqueueUpdate<State>(fiber: Fiber, update: Update<State>) {
   const pending = sharedQueue.pending;
   if (pending === null) {
     // This is the first update. Create a circular list.
+    // 第一个update做一个自闭环
     update.next = update;
   } else {
+    // 将update插入到pending的第一位
     update.next = pending.next;
     pending.next = update;
   }
@@ -323,6 +340,15 @@ export function enqueueCapturedUpdate<State>(
   queue.lastBaseUpdate = capturedUpdate;
 }
 
+/**
+ * 根据update更新state
+ * @param {*} workInProgress 
+ * @param {*} queue 
+ * @param {*} update 
+ * @param {*} prevState 
+ * @param {*} nextProps 
+ * @param {*} instance 
+ */
 function getStateFromUpdate<State>(
   workInProgress: Fiber,
   queue: UpdateQueue<State>,
@@ -364,7 +390,7 @@ function getStateFromUpdate<State>(
         (workInProgress.effectTag & ~ShouldCapture) | DidCapture;
     }
     // Intentional fallthrough
-    case UpdateState: {
+    case UpdateState: { // 更新state
       const payload = update.payload;
       let partialState;
       if (typeof payload === 'function') {
@@ -406,6 +432,13 @@ function getStateFromUpdate<State>(
   return prevState;
 }
 
+/**
+ * 执行workInProgress
+ * @param {*} workInProgress 当前执行的fiber node
+ * @param {*} props 下一段props
+ * @param {*} instance 
+ * @param {*} renderExpirationTime 渲染过期时间
+ */
 export function processUpdateQueue<State>(
   workInProgress: Fiber,
   props: any,
@@ -425,12 +458,14 @@ export function processUpdateQueue<State>(
   let lastBaseUpdate = queue.lastBaseUpdate;
 
   // Check if there are pending updates. If so, transfer them to the base queue.
+  // 检查是否有pending中的update
   let pendingQueue = queue.shared.pending;
   if (pendingQueue !== null) {
     queue.shared.pending = null;
 
     // The pending queue is circular. Disconnect the pointer between first
     // and last so that it's non-circular.
+    // pending中的update是一个环，所以取出来的时候改为链表的方式
     const lastPendingUpdate = pendingQueue;
     const firstPendingUpdate = lastPendingUpdate.next;
     lastPendingUpdate.next = null;

@@ -155,6 +155,11 @@ export function markRootSuspendedAtTime(
   }
 }
 
+/**
+ * 标记fiberRootNode的更新时间
+ * @param {*} root 
+ * @param {*} expirationTime 
+ */
 export function markRootUpdatedAtTime(
   root: FiberRoot,
   expirationTime: ExpirationTime,

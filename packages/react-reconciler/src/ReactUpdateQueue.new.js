@@ -186,6 +186,12 @@ export function cloneUpdateQueue<State>(
   }
 }
 
+/**
+ * 创建新的update
+ * @param {*} eventTime 更新时间
+ * @param {*} lane 
+ * @param {*} suspenseConfig 
+ */
 export function createUpdate(
   eventTime: number,
   lane: Lane,
@@ -205,6 +211,11 @@ export function createUpdate(
   return update;
 }
 
+/**
+ * 插入update
+ * @param {*} fiber fiber node
+ * @param {*} update 要插入的update
+ */
 export function enqueueUpdate<State>(fiber: Fiber, update: Update<State>) {
   const updateQueue = fiber.updateQueue;
   if (updateQueue === null) {
@@ -216,8 +227,10 @@ export function enqueueUpdate<State>(fiber: Fiber, update: Update<State>) {
   const pending = sharedQueue.pending;
   if (pending === null) {
     // This is the first update. Create a circular list.
+    // 第一个update创建一个环
     update.next = update;
   } else {
+    // 将update插在pending后面第一位  
     update.next = pending.next;
     pending.next = update;
   }

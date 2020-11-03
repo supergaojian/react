@@ -244,6 +244,13 @@ export function createContainer(
   return createFiberRoot(containerInfo, tag, hydrate, hydrationCallbacks);
 }
 
+/**
+ * 容器更新
+ * @param {*} element 子节点
+ * @param {*} container fiber root
+ * @param {*} parentComponent 父级实例
+ * @param {*} callback 更新后回调
+ */
 export function updateContainer(
   element: ReactNodeList,
   container: OpaqueRoot,
@@ -253,8 +260,8 @@ export function updateContainer(
   if (__DEV__) {
     onScheduleRoot(container, element);
   }
-  const current = container.current;
-  const eventTime = requestEventTime();
+  const current = container.current; // 取出fiber root对应的fiberNode
+  const eventTime = requestEventTime(); // 返回时间戳
   if (__DEV__) {
     // $FlowExpectedError - jest isn't a global, and isn't recognized outside of tests
     if ('undefined' !== typeof jest) {
@@ -289,7 +296,7 @@ export function updateContainer(
     }
   }
 
-  const update = createUpdate(eventTime, lane, suspenseConfig);
+  const update = createUpdate(eventTime, lane, suspenseConfig); // 创建新的update
   // Caution: React DevTools currently depends on this property
   // being called "element".
   update.payload = {element};

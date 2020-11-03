@@ -23,6 +23,7 @@ if (
   // Check if MessageChannel is supported, too.
   typeof MessageChannel !== 'function'
 ) {
+  // SSR环境
   // If this accidentally gets imported in a non-browser environment, e.g. JavaScriptCore,
   // fallback to a naive implementation.
   let _callback = null;
@@ -67,6 +68,7 @@ if (
   };
   requestPaint = forceFrameRate = function() {};
 } else {
+  // 浏览器环境  
   // Capture local references to native APIs, in case a polyfill overrides them.
   const performance = window.performance;
   const Date = window.Date;
@@ -102,9 +104,11 @@ if (
     typeof performance === 'object' &&
     typeof performance.now === 'function'
   ) {
+    // 默认优先使用  performance.now
     getCurrentTime = () => performance.now();
   } else {
     const initialTime = Date.now();
+    // 向下兼容使用 Date.now
     getCurrentTime = () => Date.now() - initialTime;
   }
 
